@@ -1,9 +1,11 @@
 extern crate clap;
 
-pub mod cli;
+mod cli;
+mod game;
+mod message;
 
+use crate::cli::Client;
 use clap::{App, Arg};
-use cli::Client;
 
 const DEFAULT_PORT: &str = "3000";
 const DEFAULT_HOST: &str = "localhost";
