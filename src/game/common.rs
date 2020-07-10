@@ -1,8 +1,9 @@
 use crate::cli::Client;
+use crate::game::board::Board;
 use crate::message::client::{move_message, open_message};
 use crate::message::server::ServerMessage;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum Color {
     Black,
     White,
@@ -25,28 +26,15 @@ pub enum GameResult {
 
 pub struct Player {
     name: String,
-    color: Color,
+    pub color: Color,
 }
 
-pub enum State {
+enum State {
+    Start,
     Wait,
     PlayerTurn,
     OpponentTurn,
     End,
-}
-
-pub struct Board {
-    player: u64,
-    opponent: u64,
-}
-
-impl Board {
-    pub fn new() -> Board {
-        Board {
-            player: 0u64,
-            opponent: 0u64,
-        }
-    }
 }
 
 pub struct Game<'a> {
@@ -60,12 +48,13 @@ pub struct Game<'a> {
 
 impl<'a> Game<'a> {
     fn new(client: &'a mut Client, player: Player, opponent: Player, time: u16) -> Game {
+        let board = Board::initial(&player);
         Game {
             client: client,
-            state: State::Wait,
+            state: State::Start,
             player: player,
             opponent: opponent,
-            board: Board::new(),
+            board: board,
             time: time,
         }
     }
@@ -98,11 +87,20 @@ impl<'a> Game<'a> {
     pub fn main_loop(&self) {
         loop {
             match self.state {
+                State::Start => {
+                    if self.player.color == Color::Black {
+                        self.make_move(&self.player);
+                    }
+                }
                 State::Wait => (),
                 State::PlayerTurn => (),
                 State::OpponentTurn => (),
                 State::End => return,
             }
         }
+    }
+
+    fn make_move(&self, hand: &Player) {
+        //TODO: select a valid cell
     }
 }

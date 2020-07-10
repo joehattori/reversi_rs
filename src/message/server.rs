@@ -14,7 +14,7 @@ pub enum ServerMessage {
         reason: String,
     },
     Move {
-        point: String,
+        pos: String,
     },
     Ack {
         remaining_time_ms: u16,
@@ -104,12 +104,12 @@ fn parse_end<'a>(split: &mut SplitWhitespace) -> Result<ServerMessage, &'a str> 
 }
 
 fn parse_move<'a>(split: &mut SplitWhitespace) -> Result<ServerMessage, &'a str> {
-    let point = match split.next() {
+    let pos = match split.next() {
         Some(s) => s,
         None => return Err("While parsing move: Invalid message."),
     }
     .to_string();
-    Ok(ServerMessage::Move { point: point })
+    Ok(ServerMessage::Move { pos: pos })
 }
 
 fn parse_ack<'a>(split: &mut SplitWhitespace) -> Result<ServerMessage, &'a str> {
