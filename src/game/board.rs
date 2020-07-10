@@ -1,9 +1,14 @@
 use crate::game::common::{Color, Player};
-use crate::game::util::pos_to_shift_amount;
+use crate::game::util::{clz, pos_to_shift_amount, pos_to_uint};
+
+pub struct Position {
+    pub x: u8,
+    pub y: u8,
+}
 
 pub struct Board {
-    white: u64,
-    black: u64,
+    pub white: u64,
+    pub black: u64,
 }
 
 impl Board {
@@ -16,11 +21,9 @@ impl Board {
         }
     }
 
-    pub fn flippable_player_cells(&self, color: Color) -> u64 {
-        let (target, other_target) = match color {
-            Color::Black => (self.black, self.white),
-            Color::White => (self.white, self.black),
-        };
+    pub fn flippable_cells(&self, color: Color) -> u64 {
+        let (target, other_target) = self.target_boards(color);
+
         let horizontal_watcher = other_target & 0x7e7e7e7e7e7e7e7e;
         let vertical_watcher = other_target & 0x00ffffffffffff00;
         let sides_watcher = other_target & 0x007e7e7e7e7e7e00;
@@ -111,5 +114,54 @@ impl Board {
             | legal_south_east
     }
 
-    // NEXT: fn flip()
+    pub fn flipped_board(&self, pos: Position, color: Color) -> u64 {
+        let x = 0xffffffffffffffffu64;
+        let yzw = 0x7e7e7e7e7e7e7e7eu64;
+        let pos_uint = pos_to_uint(&pos);
+        let (target, other_target) = self.target_boards(color);
+
+        let mask_x = 0x0080808080808080u64 >> (63 - pos_uint);
+        let mask_y = 0x7F00000000000000u64 >> (63 - pos_uint);
+        let mask_z = 0x0102040810204000u64 >> (63 - pos_uint);
+        let mask_w = 0x0040201008040201u64 >> (63 - pos_uint);
+
+        let mut outflank_x = 0x8000000000000000u64 >> clz(!x & mask_x) & self.white;
+        let mut outflank_y = 0x8000000000000000u64 >> clz(!yzw & mask_y) & self.white;
+        let mut outflank_z = 0x8000000000000000u64 >> clz(!yzw & mask_z) & self.white;
+        let mut outflank_w = 0x8000000000000000u64 >> clz(!yzw & mask_w) & self.white;
+
+        let mut flipped_x = (((-(outflank_x as i64)) * 2) as u64) & mask_x;
+        let mut flipped_y = (((-(outflank_y as i64)) * 2) as u64) & mask_y;
+        let mut flipped_z = (((-(outflank_z as i64)) * 2) as u64) & mask_z;
+        let mut flipped_w = (((-(outflank_w as i64)) * 2) as u64) & mask_w;
+
+        let mask_x = 0x0101010101010100u64 << pos_uint;
+        let mask_y = 0x00000000000000feu64 << pos_uint;
+        let mask_z = 0x0002040810204080u64 << pos_uint;
+        let mask_w = 0x8040201008040200u64 << pos_uint;
+
+        outflank_x = mask_x & ((x | !mask_x) + 1) & target;
+        outflank_y = mask_y & ((yzw | !mask_y) + 1) & target;
+        outflank_z = mask_z & ((yzw | !mask_z) + 1) & target;
+        outflank_w = mask_w & ((yzw | !mask_w) + 1) & target;
+
+        outflank_x = ((outflank_x as i64) - ((outflank_x != 0) as i64)) as u64;
+        outflank_y = ((outflank_y as i64) - ((outflank_y != 0) as i64)) as u64;
+        outflank_z = ((outflank_z as i64) - ((outflank_z != 0) as i64)) as u64;
+        outflank_w = ((outflank_w as i64) - ((outflank_w != 0) as i64)) as u64;
+
+        flipped_x = flipped_x | (outflank_x & mask_x);
+        flipped_y = flipped_y | (outflank_y & mask_y);
+        flipped_z = flipped_z | (outflank_z & mask_z);
+        flipped_w = flipped_w | (outflank_w & mask_w);
+
+        flipped_x | flipped_y | flipped_z | flipped_w
+    }
+
+    fn target_boards(&self, color: Color) -> (u64, u64) {
+        match color {
+            Color::Black => (self.black, self.white),
+            Color::White => (self.white, self.black),
+        }
+    }
 }

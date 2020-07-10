@@ -31,7 +31,6 @@ pub struct Player {
 
 enum State {
     Start,
-    Wait,
     PlayerTurn,
     OpponentTurn,
     End,
@@ -84,15 +83,11 @@ impl<'a> Game<'a> {
         }
     }
 
+    // NEXT: when started as black, move immediately and change to PlayerTurn.
     pub fn main_loop(&self) {
         loop {
             match self.state {
-                State::Start => {
-                    if self.player.color == Color::Black {
-                        self.make_move(&self.player);
-                    }
-                }
-                State::Wait => (),
+                State::Start => {}
                 State::PlayerTurn => (),
                 State::OpponentTurn => (),
                 State::End => return,
@@ -100,7 +95,19 @@ impl<'a> Game<'a> {
         }
     }
 
-    fn make_move(&self, hand: &Player) {
-        //TODO: select a valid cell
+    fn make_naive_move(&mut self, hand: &Player) {
+        for i in 0..8 {
+            for k in 0..8 {
+                let shift = i * 8 + k;
+                let flipped = self.board.flippable_cells(hand.color);
+                if flipped >> shift & 1 == 1 {
+                    match hand.color {
+                        Color::Black => self.board.black = 1u64 << shift | flipped,
+                        Color::White => self.board.white = 1u64 << shift | flipped,
+                    };
+                    return;
+                }
+            }
+        }
     }
 }
