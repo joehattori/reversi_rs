@@ -1,7 +1,7 @@
 use crate::game::common::{Color, GameResult};
 use std::str::SplitWhitespace;
 
-pub enum ServerMsg {
+pub enum ServerMessage {
     Start {
         color: Color,
         op_name: String,
@@ -24,7 +24,7 @@ pub enum ServerMsg {
     },
 }
 
-pub fn parse<'a>(buf: String) -> Result<ServerMsg, &'a str> {
+pub fn parse<'a>(buf: String) -> Result<ServerMessage, &'a str> {
     let mut split = buf.split_whitespace();
     match split.next() {
         Some(cmd) => match cmd {
@@ -39,7 +39,7 @@ pub fn parse<'a>(buf: String) -> Result<ServerMsg, &'a str> {
     }
 }
 
-fn parse_start<'a>(split: &mut SplitWhitespace) -> Result<ServerMsg, &'a str> {
+fn parse_start<'a>(split: &mut SplitWhitespace) -> Result<ServerMessage, &'a str> {
     let color = match split.next() {
         Some(cmd) => match cmd {
             "BLACK" => Color::Black,
@@ -59,14 +59,14 @@ fn parse_start<'a>(split: &mut SplitWhitespace) -> Result<ServerMsg, &'a str> {
         },
         None => return Err("While parsing start: Invalid message."),
     };
-    Ok(ServerMsg::Start {
+    Ok(ServerMessage::Start {
         color: color,
         op_name: op_name.to_string(),
         remaining_time_ms: remaining_time,
     })
 }
 
-fn parse_end<'a>(split: &mut SplitWhitespace) -> Result<ServerMsg, &'a str> {
+fn parse_end<'a>(split: &mut SplitWhitespace) -> Result<ServerMessage, &'a str> {
     let result = match split.next() {
         Some(r) => match r {
             "Win" => GameResult::Win,
@@ -95,7 +95,7 @@ fn parse_end<'a>(split: &mut SplitWhitespace) -> Result<ServerMsg, &'a str> {
         None => return Err("While parsing end: Invalid message."),
     }
     .to_string();
-    Ok(ServerMsg::End {
+    Ok(ServerMessage::End {
         result: result,
         player_count: player_count,
         op_count: op_count,
@@ -103,16 +103,16 @@ fn parse_end<'a>(split: &mut SplitWhitespace) -> Result<ServerMsg, &'a str> {
     })
 }
 
-fn parse_move<'a>(split: &mut SplitWhitespace) -> Result<ServerMsg, &'a str> {
+fn parse_move<'a>(split: &mut SplitWhitespace) -> Result<ServerMessage, &'a str> {
     let point = match split.next() {
         Some(s) => s,
         None => return Err("While parsing move: Invalid message."),
     }
     .to_string();
-    Ok(ServerMsg::Move { point: point })
+    Ok(ServerMessage::Move { point: point })
 }
 
-fn parse_ack<'a>(split: &mut SplitWhitespace) -> Result<ServerMsg, &'a str> {
+fn parse_ack<'a>(split: &mut SplitWhitespace) -> Result<ServerMessage, &'a str> {
     let remaining_time_ms = match split.next() {
         Some(s) => match s.parse() {
             Ok(i) => i,
@@ -120,16 +120,16 @@ fn parse_ack<'a>(split: &mut SplitWhitespace) -> Result<ServerMsg, &'a str> {
         },
         None => return Err("While parsing ack: Invalid message."),
     };
-    Ok(ServerMsg::Ack {
+    Ok(ServerMessage::Ack {
         remaining_time_ms: remaining_time_ms,
     })
 }
 
-fn parse_bye<'a>(split: &mut SplitWhitespace) -> Result<ServerMsg, &'a str> {
+fn parse_bye<'a>(split: &mut SplitWhitespace) -> Result<ServerMessage, &'a str> {
     let stat = match split.next() {
         Some(s) => s,
         None => return Err("While parsing bye: Invalid message."),
     }
     .to_string();
-    Ok(ServerMsg::Bye { stat: stat })
+    Ok(ServerMessage::Bye { stat: stat })
 }

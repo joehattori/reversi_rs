@@ -1,12 +1,7 @@
-pub enum ClientMsg {
-    Open { my_name: String },
-    Move { point: String },
-}
-
-pub fn build_message_open(name: String) -> String {
+pub fn open_message(name: &str) -> String {
     vec!["OPEN", name].join(" ")
 }
 
-pub fn build_message_move(point: String) -> String {
+pub fn move_message(point: &str) -> String {
     vec!["MOVE", point].join(" ")
 }

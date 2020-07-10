@@ -1,6 +1,6 @@
-use crate::message::server::{parse, ServerMsg};
+use crate::message::server::{parse, ServerMessage};
 use std::io;
-use std::io::BufRead;
+use std::io::{BufRead, Write};
 use std::net;
 
 pub struct Client {
@@ -31,7 +31,7 @@ impl Client {
         }
     }
 
-    pub fn read_message(&mut self) -> Result<ServerMsg, &str> {
+    pub fn poll_message(&mut self) -> Result<ServerMessage, &str> {
         loop {
             let mut buf = String::new();
             match self.reader.read_line(&mut buf) {
@@ -43,6 +43,16 @@ impl Client {
             }
             println!("read: {}", buf);
             return parse(buf);
+        }
+    }
+
+    pub fn send_message(&mut self, msg: String) -> Result<(), &str> {
+        match writeln!(self.writer, "{}", msg) {
+            Ok(_) => {
+                self.writer.flush().unwrap();
+                Ok(())
+            }
+            _ => Err("Failed to send"),
         }
     }
 }
