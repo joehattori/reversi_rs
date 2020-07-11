@@ -46,7 +46,7 @@ fn main() {
     let mut client = Client::new(host, port);
     let game = match Game::launch(&mut client, name) {
         Ok(game) => game,
-        Err(err) => panic!("{}", err),
+        Err(s) => panic!("{}", s),
     };
     game.main_loop();
     println!("Game Ended!");
