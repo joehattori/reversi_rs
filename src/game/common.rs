@@ -44,7 +44,7 @@ pub struct Game<'a> {
 }
 
 impl<'a> Game<'a> {
-    fn new(client: &'a mut Client, player: Player, opponent: Player, time: u32) -> Game {
+    fn empty(client: &'a mut Client, player: Player, opponent: Player, time: u32) -> Game {
         let board = Board::initial();
         Game {
             client: client,
@@ -71,7 +71,7 @@ impl<'a> Game<'a> {
             name: String::new(),
             color: Color::White,
         };
-        Ok(Game::new(client, player, opponent, 0))
+        Ok(Game::empty(client, player, opponent, 0))
     }
 
     pub fn main_loop(mut self) {
@@ -85,11 +85,7 @@ impl<'a> Game<'a> {
                                 op_name,
                                 remaining_time_ms,
                             } => {
-                                self.board = Board::initial();
-                                self.player.color = color;
-                                self.opponent.color = color.other_color();
-                                self.opponent.name = op_name;
-                                self.time = remaining_time_ms;
+                                self.handle_start(color, &op_name, remaining_time_ms);
                             }
                             ServerMessage::Bye { stat } => {
                                 println!("{}", stat);
@@ -98,10 +94,6 @@ impl<'a> Game<'a> {
                             _ => panic!("Unexpected message: expected Start or Bye"),
                         },
                         Err(s) => panic!("{}", s),
-                    };
-                    self.state = match self.player.color {
-                        Color::Black => State::PlayerTurn,
-                        Color::White => State::OpponentTurn,
                     };
                 }
                 State::PlayerTurn => {
@@ -112,10 +104,7 @@ impl<'a> Game<'a> {
                         Some(p) => move_message(p),
                         None => pass_message(),
                     };
-                    match self.client.send_message(&msg) {
-                        Ok(_) => (),
-                        Err(s) => panic!("{}", s),
-                    };
+                    self.client.send_message(&msg).unwrap();
                     self.board.print();
                     match self.client.poll_message() {
                         Ok(msg) => match msg {
@@ -128,16 +117,7 @@ impl<'a> Game<'a> {
                                 op_count,
                                 reason,
                             } => {
-                                let result_str = match result {
-                                    GameResult::Win => "You win!",
-                                    GameResult::Lose => "You lose!",
-                                    GameResult::Tie => "Tie game!",
-                                };
-                                println!(
-                                    "{}. My count: {}, Opponent count: {}, reason: {}",
-                                    result_str, player_count, op_count, reason
-                                );
-                                self.state = State::Wait;
+                                self.handle_end(result, player_count, op_count, &reason);
                             }
                             _ => panic!("Unexpected message: expected Ack"),
                         },
@@ -147,14 +127,7 @@ impl<'a> Game<'a> {
                 State::OpponentTurn => match self.client.poll_message() {
                     Ok(msg) => match msg {
                         ServerMessage::Move { pos } => {
-                            match pos {
-                                Some(p) => {
-                                    self.board = self.board.flip(&p, self.opponent.color);
-                                }
-                                None => (),
-                            };
-                            self.board.print();
-                            self.state = State::PlayerTurn;
+                            self.handle_move(pos);
                         }
                         ServerMessage::End {
                             result,
@@ -162,21 +135,7 @@ impl<'a> Game<'a> {
                             op_count,
                             reason,
                         } => {
-                            let result_str = match result {
-                                GameResult::Win => "You win!",
-                                GameResult::Lose => "You lose!",
-                                GameResult::Tie => "Tie game!",
-                            };
-                            println!(
-                                "{}. {}'s count: {}, {}'s count: {}, reason: {}",
-                                result_str,
-                                self.player.name,
-                                player_count,
-                                self.opponent.name,
-                                op_count,
-                                reason
-                            );
-                            self.state = State::Wait;
+                            self.handle_end(result, player_count, op_count, &reason);
                         }
                         _ => panic!("Unexpected message: expected Move or End"),
                     },
@@ -184,6 +143,42 @@ impl<'a> Game<'a> {
                 },
             }
         }
+    }
+
+    fn handle_start(&mut self, color: Color, op_name: &str, time: u32) {
+        self.board = Board::initial();
+        self.player.color = color;
+        self.opponent.color = color.other_color();
+        self.opponent.name = op_name.to_string();
+        self.time = time;
+        self.state = match self.player.color {
+            Color::Black => State::PlayerTurn,
+            Color::White => State::OpponentTurn,
+        };
+    }
+
+    fn handle_move(&mut self, pos: Option<Position>) {
+        match pos {
+            Some(p) => {
+                self.board = self.board.flip(&p, self.opponent.color);
+            }
+            None => (),
+        };
+        self.board.print();
+        self.state = State::PlayerTurn;
+    }
+
+    fn handle_end(&mut self, result: GameResult, player_count: u8, op_count: u8, reason: &str) {
+        let result_str = match result {
+            GameResult::Win => "You win!",
+            GameResult::Lose => "You lose!",
+            GameResult::Tie => "Tie game!",
+        };
+        println!(
+            "{}. {}'s count: {}, {}'s count: {}, reason: {}",
+            result_str, self.player.name, player_count, self.opponent.name, op_count, reason
+        );
+        self.state = State::Wait;
     }
 
     fn make_naive_move(&self, color: Color) -> (Option<Position>, Board) {

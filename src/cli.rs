@@ -15,10 +15,10 @@ impl Client {
     pub fn new(host: &str, port: u32) -> Client {
         let addr = host.to_string() + ":" + &port.to_string();
         match net::TcpStream::connect(addr) {
-            Ok(stream) => match stream.try_clone() {
-                Ok(s) => {
-                    let w = io::BufWriter::new(s);
-                    let r = io::BufReader::new(stream);
+            Ok(r_stream) => match r_stream.try_clone() {
+                Ok(w_stream) => {
+                    let w = io::BufWriter::new(w_stream);
+                    let r = io::BufReader::new(r_stream);
                     Client {
                         reader: r,
                         writer: w,
