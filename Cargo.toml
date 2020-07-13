@@ -1,5 +1,5 @@
 [package]
-name = "reversi-rs"
+name = "reversi_rs"
 version = "0.1.0"
 authors = ["Joe Hattori <joe2ninja21@gmail.com>"]
 edition = "2018"

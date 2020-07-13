@@ -1,13 +1,13 @@
-use crate::game::board::Position;
 use crate::game::common::{Color, GameResult};
+use crate::game::square::Square;
 
 // client
 pub fn open_message(name: &str) -> String {
     vec!["OPEN", name].join(" ")
 }
 
-pub fn move_message(pos: Position) -> String {
-    vec!["MOVE", &pos.to_cell_string()].join(" ")
+pub fn move_message(s: &Square) -> String {
+    vec!["MOVE", &s.to_string()].join(" ")
 }
 
 pub fn pass_message() -> String {
@@ -28,7 +28,7 @@ pub enum ServerMessage {
         reason: String,
     },
     Move {
-        pos: Option<Position>,
+        pos: Option<Square>,
     },
     Ack {
         remaining_time_ms: u32,

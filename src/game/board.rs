@@ -1,51 +1,20 @@
 use crate::game::common::Color;
+use crate::game::square::Square;
 use crate::game::util::clz;
-
-pub struct Position {
-    // x and y are both 0 indexed
-    pub x: u8,
-    pub y: u8,
-}
-
-impl Position {
-    pub fn from_str(s: &str) -> Result<Position, &str> {
-        let mut chars = s.chars();
-        let x = match chars.next() {
-            Some(c) => c as u8 - 'A' as u8,
-            None => return Err("While parsing pos: invalid position."),
-        };
-        let y = match chars.next() {
-            Some(c) => match c.to_digit(10) {
-                Some(n) => n as u8 - 1,
-                None => return Err("While parsing pos: invalid position."),
-            },
-            None => return Err("While parsing pos: invalid position."),
-        };
-        Ok(Position { x, y })
-    }
-
-    pub fn to_uint(&self) -> u8 {
-        self.x + self.y * 8
-    }
-
-    pub fn to_cell_string(&self) -> String {
-        format!("{}{}", (self.x + 'A' as u8) as char, self.y + 1)
-    }
-}
 
 #[derive(Copy, Clone)]
 pub struct Board {
-    pub white: u64,
-    pub black: u64,
+    pub dark: u64,
+    pub light: u64,
 }
 
 impl Board {
     pub fn initial() -> Board {
         Board {
-            white: 1u64 << Position::from_str("D4").unwrap().to_uint()
-                | 1u64 << Position::from_str("E5").unwrap().to_uint(),
-            black: 1u64 << Position::from_str("D5").unwrap().to_uint()
-                | 1u64 << Position::from_str("E4").unwrap().to_uint(),
+            dark: 1u64 << Square::from_str("D5").unwrap().to_uint()
+                | 1u64 << Square::from_str("E4").unwrap().to_uint(),
+            light: 1u64 << Square::from_str("D4").unwrap().to_uint()
+                | 1u64 << Square::from_str("E5").unwrap().to_uint(),
         }
     }
 
@@ -60,9 +29,9 @@ impl Board {
                 print!("{}|", i / 8 + 1);
             }
 
-            if self.black & 1 << i != 0 {
+            if self.dark & 1 << i != 0 {
                 print!("x ");
-            } else if self.white & 1 << i != 0 {
+            } else if self.light & 1 << i != 0 {
                 print!("o ");
             } else {
                 print!("  ");
@@ -71,27 +40,27 @@ impl Board {
         print!("\n");
     }
 
-    pub fn flip(&self, pos: &Position, color: Color) -> Board {
-        let flipped = self.flipped_cells(&pos, color);
+    pub fn flip(&self, pos: &Square, color: Color) -> Board {
+        let flipped = self.flipped_squares(&pos, color);
         match color {
-            Color::Black => Board {
-                black: self.black | 1u64 << pos.to_uint() | flipped,
-                white: self.white & !flipped,
+            Color::Dark => Board {
+                dark: self.dark | 1u64 << pos.to_uint() | flipped,
+                light: self.light & !flipped,
             },
-            Color::White => Board {
-                black: self.black & !flipped,
-                white: self.white | 1u64 << pos.to_uint() | flipped,
+            Color::Light => Board {
+                dark: self.dark & !flipped,
+                light: self.light | 1u64 << pos.to_uint() | flipped,
             },
         }
     }
 
-    pub fn flippable_cells(&self, color: Color) -> u64 {
+    pub fn flippable_squares(&self, color: Color) -> u64 {
         let (target_board, other_board) = self.target_boards(color);
 
         let horizontal_watcher = other_board & 0x7e7e7e7e7e7e7e7e;
         let vertical_watcher = other_board & 0x00ffffffffffff00;
         let sides_watcher = other_board & 0x007e7e7e7e7e7e00;
-        let blank_cells = !(target_board | other_board);
+        let blank_squares = !(target_board | other_board);
 
         // one can flip atmost 6 disks.
         // opening for loops for speed up
@@ -103,7 +72,7 @@ impl Board {
         tmp |= horizontal_watcher & tmp << 1;
         tmp |= horizontal_watcher & tmp << 1;
         tmp |= horizontal_watcher & tmp << 1;
-        let legal_west = blank_cells & tmp << 1;
+        let legal_west = blank_squares & tmp << 1;
 
         // east
         let mut tmp = horizontal_watcher & target_board >> 1;
@@ -112,7 +81,7 @@ impl Board {
         tmp |= horizontal_watcher & tmp >> 1;
         tmp |= horizontal_watcher & tmp >> 1;
         tmp |= horizontal_watcher & tmp >> 1;
-        let legal_east = blank_cells & tmp >> 1;
+        let legal_east = blank_squares & tmp >> 1;
 
         // top
         let mut tmp = vertical_watcher & target_board << 8;
@@ -121,7 +90,7 @@ impl Board {
         tmp |= vertical_watcher & tmp << 8;
         tmp |= vertical_watcher & tmp << 8;
         tmp |= vertical_watcher & tmp << 8;
-        let legal_north = blank_cells & tmp << 8;
+        let legal_north = blank_squares & tmp << 8;
 
         // bottom
         let mut tmp = vertical_watcher & target_board >> 8;
@@ -130,7 +99,7 @@ impl Board {
         tmp |= vertical_watcher & tmp >> 8;
         tmp |= vertical_watcher & tmp >> 8;
         tmp |= vertical_watcher & tmp >> 8;
-        let legal_south = blank_cells & tmp >> 8;
+        let legal_south = blank_squares & tmp >> 8;
 
         // north west
         let mut tmp = sides_watcher & target_board << 9;
@@ -139,7 +108,7 @@ impl Board {
         tmp |= sides_watcher & tmp << 9;
         tmp |= sides_watcher & tmp << 9;
         tmp |= sides_watcher & tmp << 9;
-        let legal_north_west = blank_cells & tmp << 9;
+        let legal_north_west = blank_squares & tmp << 9;
 
         // north east
         let mut tmp = sides_watcher & target_board << 7;
@@ -148,7 +117,7 @@ impl Board {
         tmp |= sides_watcher & tmp << 7;
         tmp |= sides_watcher & tmp << 7;
         tmp |= sides_watcher & tmp << 7;
-        let legal_north_east = blank_cells & tmp << 7;
+        let legal_north_east = blank_squares & tmp << 7;
 
         // south west
         let mut tmp = sides_watcher & target_board >> 7;
@@ -157,7 +126,7 @@ impl Board {
         tmp |= sides_watcher & tmp >> 7;
         tmp |= sides_watcher & tmp >> 7;
         tmp |= sides_watcher & tmp >> 7;
-        let legal_south_west = blank_cells & tmp >> 7;
+        let legal_south_west = blank_squares & tmp >> 7;
 
         // south east
         let mut tmp = sides_watcher & target_board >> 9;
@@ -166,7 +135,7 @@ impl Board {
         tmp |= sides_watcher & tmp >> 9;
         tmp |= sides_watcher & tmp >> 9;
         tmp |= sides_watcher & tmp >> 9;
-        let legal_south_east = blank_cells & tmp >> 9;
+        let legal_south_east = blank_squares & tmp >> 9;
 
         legal_west
             | legal_east
@@ -178,42 +147,42 @@ impl Board {
             | legal_south_east
     }
 
-    pub fn flipped_cells(&self, pos: &Position, color: Color) -> u64 {
+    pub fn flipped_squares(&self, square: &Square, color: Color) -> u64 {
         let (target_board, mut other_board) = self.target_boards(color);
-        let pos_uint = pos.to_uint();
+        let square_uint = square.to_uint();
 
         let mut ret = 0u64;
 
-        let mut mask = 0x0080808080808080u64 >> (63 - pos_uint);
+        let mut mask = 0x0080808080808080u64 >> (63 - square_uint);
         let mut outflank = 0x8000000000000000u64 >> clz(!other_board & mask) & target_board;
         let mut flipped = (-(outflank as i128) * 2) as u64 & mask;
-        mask = 0x0101010101010100u64 << pos_uint;
+        mask = 0x0101010101010100u64 << square_uint;
         outflank = mask & ((other_board | !mask) as u128 + 1) as u64 & target_board;
         flipped |= (outflank as i128 - ((outflank != 0) as i128)) as u64 & mask;
         ret |= flipped;
 
         other_board &= 0x7e7e7e7e7e7e7e7eu64;
 
-        let mut mask = 0x7f00000000000000u64 >> (63 - pos_uint);
+        let mut mask = 0x7f00000000000000u64 >> (63 - square_uint);
         let mut outflank = 0x8000000000000000u64 >> clz(!other_board & mask) & target_board;
         let mut flipped = (-(outflank as i128) * 2) as u64 & mask;
-        mask = 0x00000000000000feu64 << pos_uint;
+        mask = 0x00000000000000feu64 << square_uint;
         outflank = mask & ((other_board | !mask) as u128 + 1) as u64 & target_board;
         flipped |= (outflank as i128 - ((outflank != 0) as i128)) as u64 & mask;
         ret |= flipped;
 
-        let mut mask = 0x0102040810204000u64 >> (63 - pos_uint);
+        let mut mask = 0x0102040810204000u64 >> (63 - square_uint);
         let mut outflank = 0x8000000000000000u64 >> clz(!other_board & mask) & target_board;
         let mut flipped = (-(outflank as i128) * 2) as u64 & mask;
-        mask = 0x0002040810204080u64 << pos_uint;
+        mask = 0x0002040810204080u64 << square_uint;
         outflank = mask & ((other_board | !mask) as u128 + 1) as u64 & target_board;
         flipped |= (outflank as i128 - ((outflank != 0) as i128)) as u64 & mask;
         ret |= flipped;
 
-        let mut mask = 0x0040201008040201u64 >> (63 - pos_uint);
+        let mut mask = 0x0040201008040201u64 >> (63 - square_uint);
         let mut outflank = 0x8000000000000000u64 >> clz(!other_board & mask) & target_board;
         let mut flipped = (-(outflank as i128) * 2) as u64 & mask;
-        mask = 0x8040201008040200u64 << pos_uint;
+        mask = 0x8040201008040200u64 << square_uint;
         outflank = mask & ((other_board | !mask) as u128 + 1) as u64 & target_board;
         flipped |= (outflank as i128 - ((outflank != 0) as i128)) as u64 & mask;
         ret |= flipped;
@@ -221,10 +190,88 @@ impl Board {
         ret
     }
 
+    pub fn winnable_color(&self, hand: Color, passed: bool) -> Option<Color> {
+        if self.is_end() {
+            return Some(self.winner());
+        }
+        let mut flippables = self.flippable_squares(hand);
+        let opposite = hand.opposite();
+        if flippables == 0 {
+            if passed {
+                return Some(self.winner());
+            }
+            return self.winnable_color(opposite, true);
+        }
+        let mut ret = Some(hand.opposite());
+        let mut pos = 0;
+        while flippables > 0 {
+            let zeros = flippables.trailing_zeros() as u8;
+            if zeros < 63 {
+                flippables >>= zeros + 1;
+                pos += zeros + 1;
+            } else {
+                flippables = 0;
+                pos = 64;
+            };
+            match self
+                .flip(&Square::from_uint(pos - 1), hand)
+                .winnable_color(opposite, false)
+            {
+                Some(c) => {
+                    if c == hand {
+                        return Some(hand);
+                    }
+                }
+                None => ret = None,
+            }
+        }
+        ret
+    }
+
+    pub fn empty_squares_count(&self) -> u8 {
+        (self.dark | self.light).count_zeros() as u8
+    }
+
     fn target_boards(&self, color: Color) -> (u64, u64) {
         match color {
-            Color::Black => (self.black, self.white),
-            Color::White => (self.white, self.black),
+            Color::Dark => (self.dark, self.light),
+            Color::Light => (self.light, self.dark),
         }
+    }
+
+    fn winner(&self) -> Color {
+        if self.dark.count_ones() > self.light.count_ones() {
+            Color::Dark
+        } else {
+            Color::Light
+        }
+    }
+
+    fn is_end(&self) -> bool {
+        (self.dark & self.light).count_ones() == 64
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn winnable_color_test() {
+        let boards = [
+            Board {
+                dark: 0x6000100810120500,
+                light: 0x8efceff76f6d3a3f,
+            },
+            Board {
+                dark: 0xfc2eeeb28a8c2e3e,
+                light: 0x0311114d75735100,
+            },
+        ];
+        let results = [Color::Dark, Color::Dark];
+        boards
+            .iter()
+            .zip(results.iter())
+            .for_each(|(b, r)| assert_eq!(b.winnable_color(Color::Dark, false).unwrap(), *r));
     }
 }

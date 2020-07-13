@@ -1,5 +1,5 @@
-use crate::game::board::Position;
 use crate::game::common::{Color, GameResult};
+use crate::game::square::Square;
 use crate::message::ServerMessage;
 use std::io;
 use std::io::{BufRead, Write};
@@ -73,8 +73,8 @@ impl Client {
     fn parse_start(&self, split: &mut SplitWhitespace) -> Result<ServerMessage, String> {
         let color = match split.next() {
             Some(cmd) => match cmd {
-                "BLACK" => Color::Black,
-                "WHITE" => Color::White,
+                "BLACK" => Color::Dark,
+                "WHITE" => Color::Light,
                 _ => return Err("While parsing start: Invalid color.".to_string()),
             },
             None => return Err("While parsing start: Invalid message.".to_string()),
@@ -145,7 +145,7 @@ impl Client {
         let pos = if pos == "PASS" {
             None
         } else {
-            match Position::from_str(pos) {
+            match Square::from_str(pos) {
                 Ok(p) => Some(p),
                 Err(s) => return Err(s.to_string()),
             }
