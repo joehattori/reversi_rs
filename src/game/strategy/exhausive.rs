@@ -11,26 +11,25 @@ impl Strategy for Exhausive {
         if flippables == 0 {
             return None;
         }
+        let mut ret = None;
         for i in 0..64 {
             if flippables & 1 << i != 0 {
                 let square = Square::from_uint(i);
-                if is_must_win(board, color, &square) {
-                    return Some(square);
+                match board
+                    .flip(&square, color)
+                    .winnable_color(color.opposite(), false)
+                {
+                    Some(c) => {
+                        if c == color {
+                            return Some(square);
+                        }
+                    }
+                    None => ret = Some(square),
                 }
             }
         }
-        return Some(Square::from_uint(flippables.trailing_zeros() as u8));
+        ret.or(Some(Square::from_uint(flippables.trailing_zeros() as u8)))
     }
-}
-
-fn is_must_win(board: &Board, hand: Color, next: &Square) -> bool {
-    if let Some(c) = board
-        .flip(next, hand)
-        .winnable_color(hand.opposite(), false)
-    {
-        return c == hand;
-    }
-    false
 }
 
 #[cfg(test)]

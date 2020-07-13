@@ -48,7 +48,7 @@ pub struct Game<'a> {
 }
 
 impl<'a> Game<'a> {
-    const ENDGAME_BORDER: u8 = 22;
+    const ENDGAME_BORDER: u8 = 20;
 
     fn empty(client: &'a mut Client, player: Player, opponent: Player, time: u32) -> Game {
         let board = Board::initial();
