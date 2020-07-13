@@ -48,6 +48,8 @@ pub struct Game<'a> {
 }
 
 impl<'a> Game<'a> {
+    const ENDGAME_BORDER: u8 = 22;
+
     fn empty(client: &'a mut Client, player: Player, opponent: Player, time: u32) -> Game {
         let board = Board::initial();
         Game {
@@ -199,9 +201,7 @@ impl<'a> Game<'a> {
     }
 
     fn perform_player_move(&mut self) -> String {
-        if self.board.empty_squares_count() < 20 {
-            self.strategy = Box::new(strategy::Exhausive {});
-        }
+        self.set_strategy();
         match self.strategy.next_move(&self.board, self.player.color) {
             Some(square) => {
                 self.board = self.board.flip(&square, self.player.color);
@@ -209,5 +209,14 @@ impl<'a> Game<'a> {
             }
             None => pass_message(),
         }
+    }
+
+    fn set_strategy(&mut self) {
+        let count = self.board.empty_squares_count();
+        self.strategy = if count < Game::ENDGAME_BORDER {
+            Box::new(strategy::Exhausive {})
+        } else {
+            Box::new(strategy::Naive {})
+        };
     }
 }
