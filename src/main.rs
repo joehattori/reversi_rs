@@ -4,16 +4,15 @@ mod cli;
 mod game;
 mod message;
 
-use crate::cli::Client;
 use crate::game::common::Game;
-use clap::{App, Arg};
+use clap::Arg;
 
 const DEFAULT_PORT: &str = "3000";
 const DEFAULT_HOST: &str = "localhost";
 const DEFAULT_NAME: &str = "Joe";
 
 fn main() {
-    let matches = App::new("Let's Reversi")
+    let matches = clap::App::new("Let's Reversi")
         .arg(
             Arg::with_name("host")
                 .short("H")
@@ -38,13 +37,13 @@ fn main() {
         .get_matches();
 
     let host = matches.value_of("host").unwrap_or(DEFAULT_HOST);
-    let port = match matches.value_of("port").unwrap_or(DEFAULT_PORT).parse() {
-        Ok(n) => n,
-        Err(_) => panic!("Invalid port specified."),
-    };
+    let port: u32 = matches
+        .value_of("port")
+        .unwrap_or(DEFAULT_PORT)
+        .parse()
+        .expect("Invalid port specified.");
     let name = matches.value_of("name").unwrap_or(DEFAULT_NAME);
-    let mut client = Client::new(host, port);
-    let game = match Game::launch(&mut client, name) {
+    let game = match Game::launch(host, port, name) {
         Ok(game) => game,
         Err(s) => panic!("{}", s),
     };

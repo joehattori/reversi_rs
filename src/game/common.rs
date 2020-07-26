@@ -37,8 +37,8 @@ enum State {
     OpponentTurn,
 }
 
-pub struct Game<'a> {
-    client: &'a mut Client,
+pub struct Game {
+    client: Client,
     state: State,
     player: Player,
     opponent: Player,
@@ -47,10 +47,10 @@ pub struct Game<'a> {
     strategy: Box<dyn Strategy>,
 }
 
-impl<'a> Game<'a> {
+impl Game {
     const ENDGAME_BORDER: u8 = 20;
 
-    fn empty(client: &'a mut Client, player: Player, opponent: Player, time: u32) -> Game {
+    fn empty(client: Client, player: Player, opponent: Player, time: u32) -> Game {
         let board = Board::initial();
         Game {
             client: client,
@@ -63,7 +63,8 @@ impl<'a> Game<'a> {
         }
     }
 
-    pub fn launch(client: &'a mut Client, name: &str) -> Result<Game<'a>, String> {
+    pub fn launch(host: &str, port: u32, name: &str) -> Result<Game, String> {
+        let mut client = Client::new(host, port);
         match client.send_message(&open_message(name)) {
             Ok(_) => (),
             Err(_) => return Err("Couldn't start game.".to_string()),
