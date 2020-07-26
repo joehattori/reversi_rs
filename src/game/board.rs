@@ -40,16 +40,16 @@ impl Board {
         print!("\n");
     }
 
-    pub fn flip(&self, pos: &Square, color: Color) -> Board {
-        let flipped = self.flipped_squares(&pos, color);
+    pub fn flip(&self, square: Square, color: Color) -> Board {
+        let flipped = self.flipped_squares(square, color);
         match color {
             Color::Dark => Board {
-                dark: self.dark | 1u64 << pos.to_uint() | flipped,
+                dark: self.dark | 1u64 << square.to_uint() | flipped,
                 light: self.light & !flipped,
             },
             Color::Light => Board {
                 dark: self.dark & !flipped,
-                light: self.light | 1u64 << pos.to_uint() | flipped,
+                light: self.light | 1u64 << square.to_uint() | flipped,
             },
         }
     }
@@ -147,7 +147,7 @@ impl Board {
             | legal_south_east
     }
 
-    pub fn flipped_squares(&self, square: &Square, color: Color) -> u64 {
+    pub fn flipped_squares(&self, square: Square, color: Color) -> u64 {
         let (target_board, mut other_board) = self.target_boards(color);
         let square_uint = square.to_uint();
 
@@ -214,7 +214,7 @@ impl Board {
                 pos = 64;
             };
             match self
-                .flip(&Square::from_uint(pos - 1), hand)
+                .flip(Square::from_uint(pos - 1), hand)
                 .winnable_color(opposite, false)
             {
                 Some(c) => {
@@ -230,6 +230,12 @@ impl Board {
 
     pub fn empty_squares_count(&self) -> u8 {
         (self.dark | self.light).count_zeros() as u8
+    }
+
+    // TODO: elaborate
+    pub fn score(&self, color: Color) -> f32 {
+        // prevent division by zero
+        1_f32 / (self.flippable_squares(color.opposite()).count_ones() + 1) as f32
     }
 
     fn target_boards(&self, color: Color) -> (u64, u64) {

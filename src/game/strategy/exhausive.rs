@@ -6,7 +6,7 @@ use crate::game::strategy::Strategy;
 pub struct Exhausive {}
 
 impl Strategy for Exhausive {
-    fn next_move(&mut self, board: &Board, color: Color) -> Option<Square> {
+    fn next_move(&mut self, board: Board, color: Color) -> Option<Square> {
         let flippables = board.flippable_squares(color);
         if flippables == 0 {
             return None;
@@ -16,7 +16,7 @@ impl Strategy for Exhausive {
             if flippables & 1 << i != 0 {
                 let square = Square::from_uint(i);
                 match board
-                    .flip(&square, color)
+                    .flip(square, color)
                     .winnable_color(color.opposite(), false)
                 {
                     Some(c) => {
@@ -52,7 +52,7 @@ mod tests {
         let mut e = Exhausive {};
         for (b, s) in boards.iter().zip(next_moves.iter()) {
             assert_eq!(
-                e.next_move(b, Color::Dark).unwrap().to_string(),
+                e.next_move(b.clone(), Color::Dark).unwrap().to_string(),
                 s.to_string()
             );
         }

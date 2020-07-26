@@ -6,7 +6,7 @@ use crate::game::strategy::Strategy;
 pub struct Naive {}
 
 impl Strategy for Naive {
-    fn next_move(&mut self, board: &Board, color: Color) -> Option<Square> {
+    fn next_move(&mut self, board: Board, color: Color) -> Option<Square> {
         let flippables = board.flippable_squares(color);
         for i in 0..64 {
             if flippables & 1 << i != 0 {

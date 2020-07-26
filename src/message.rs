@@ -6,7 +6,7 @@ pub fn open_message(name: &str) -> String {
     vec!["OPEN", name].join(" ")
 }
 
-pub fn move_message(s: &Square) -> String {
+pub fn move_message(s: Square) -> String {
     vec!["MOVE", &s.to_string()].join(" ")
 }
 
