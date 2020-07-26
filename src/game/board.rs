@@ -2,15 +2,15 @@ use crate::game::common::Color;
 use crate::game::square::Square;
 use crate::game::util::clz;
 
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Board {
     pub dark: u64,
     pub light: u64,
 }
 
 impl Board {
-    pub fn initial() -> Board {
-        Board {
+    pub fn initial() -> Self {
+        Self {
             dark: 1u64 << Square::from_str("D5").unwrap().to_uint()
                 | 1u64 << Square::from_str("E4").unwrap().to_uint(),
             light: 1u64 << Square::from_str("D4").unwrap().to_uint()
@@ -40,14 +40,14 @@ impl Board {
         print!("\n");
     }
 
-    pub fn flip(&self, square: Square, color: Color) -> Board {
+    pub fn flip(&self, square: Square, color: Color) -> Self {
         let flipped = self.flipped_squares(square, color);
         match color {
-            Color::Dark => Board {
+            Color::Dark => Self {
                 dark: self.dark | 1u64 << square.to_uint() | flipped,
                 light: self.light & !flipped,
             },
-            Color::Light => Board {
+            Color::Light => Self {
                 dark: self.dark & !flipped,
                 light: self.light | 1u64 << square.to_uint() | flipped,
             },

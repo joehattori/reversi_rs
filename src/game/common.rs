@@ -50,21 +50,21 @@ pub struct Game {
 impl Game {
     const ENDGAME_BORDER: u8 = 20;
     const MIDGAME_BORDER: u8 = 40;
+    const NEGA_SCOUT_DEPTH: u8 = 7;
 
-    fn empty(client: Client, player: Player, opponent: Player, time: u32) -> Game {
-        let board = Board::initial();
-        Game {
+    fn empty(client: Client, player: Player, opponent: Player, time: u32) -> Self {
+        Self {
             client: client,
             state: State::Wait,
             player: player,
             opponent: opponent,
-            board: board,
+            board: Board::initial(),
             time: time,
             strategy: Box::new(Strategy::default()),
         }
     }
 
-    pub fn launch(host: &str, port: u32, name: &str) -> Result<Game, String> {
+    pub fn launch(host: &str, port: u32, name: &str) -> Result<Self, String> {
         let mut client = Client::new(host, port);
         match client.send_message(&open_message(name)) {
             Ok(_) => (),
@@ -209,9 +209,11 @@ impl Game {
         self.strategy = if count < Game::ENDGAME_BORDER {
             Box::new(strategy::Exhausive {})
         } else if count < Game::MIDGAME_BORDER {
-            Box::new(strategy::NegaScout { depth: 8 })
+            Box::new(strategy::NegaScout {
+                depth: Game::NEGA_SCOUT_DEPTH,
+            })
         } else {
-            Box::new(strategy::Naive {})
+            Box::new(strategy::Opening {})
         };
     }
 }

@@ -43,10 +43,7 @@ fn main() {
         .parse()
         .expect("Invalid port specified.");
     let name = matches.value_of("name").unwrap_or(DEFAULT_NAME);
-    let game = match Game::launch(host, port, name) {
-        Ok(game) => game,
-        Err(s) => panic!("{}", s),
-    };
+    let game = Game::launch(host, port, name).unwrap();
     game.main_loop();
     println!("Game Ended!");
 }

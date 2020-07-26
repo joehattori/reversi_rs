@@ -6,7 +6,7 @@ pub struct Square {
 }
 
 impl Square {
-    pub fn from_str(s: &str) -> Result<Square, &str> {
+    pub fn from_str(s: &str) -> Result<Self, &str> {
         let mut chars = s.chars();
         let x = match chars.next() {
             Some(c) => c as u8 - 'A' as u8,
@@ -19,11 +19,11 @@ impl Square {
             },
             None => return Err("While parsing Square: invalid square."),
         };
-        Ok(Square { x, y })
+        Ok(Self { x, y })
     }
 
-    pub fn from_uint(i: u8) -> Square {
-        Square { x: i % 8, y: i / 8 }
+    pub fn from_uint(i: u8) -> Self {
+        Self { x: i % 8, y: i / 8 }
     }
 
     pub fn to_uint(&self) -> u8 {

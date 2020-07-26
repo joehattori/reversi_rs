@@ -12,21 +12,16 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(host: &str, port: u32) -> Client {
+    pub fn new(host: &str, port: u32) -> Self {
         let addr = host.to_string() + ":" + &port.to_string();
-        match net::TcpStream::connect(addr) {
-            Ok(r_stream) => match r_stream.try_clone() {
-                Ok(w_stream) => {
-                    let w = io::BufWriter::new(w_stream);
-                    let r = io::BufReader::new(r_stream);
-                    Client {
-                        reader: r,
-                        writer: w,
-                    }
-                }
-                Err(_) => panic!("Couldn't clone stream"),
-            },
-            Err(_) => panic!("Couldn't connect to {}:{}", host, port),
+        let r_stream =
+            net::TcpStream::connect(addr).expect(&format!("Couldn't connect to {}:{}", host, port));
+        let w_stream = r_stream.try_clone().expect("Couldn't clone stream.");
+        let w = io::BufWriter::new(w_stream);
+        let r = io::BufReader::new(r_stream);
+        Self {
+            reader: r,
+            writer: w,
         }
     }
 
@@ -45,28 +40,26 @@ impl Client {
         }
     }
 
-    pub fn send_message(&mut self, msg: &str) -> Result<(), &str> {
-        match writeln!(self.writer, "{}", msg) {
-            Ok(_) => {
+    pub fn send_message(&mut self, msg: &str) -> Result<(), String> {
+        writeln!(self.writer, "{}", msg)
+            .map_err(|_| "Couldn't send.".to_string())
+            .map(|_| {
                 self.writer.flush().unwrap();
                 println!("Sent {}", msg);
-                Ok(())
-            }
-            _ => Err("Failed to send"),
-        }
+            })
     }
     pub fn parse_input(&self, buf: String) -> Result<ServerMessage, String> {
         let mut split = buf.split_whitespace();
         match split.next() {
             Some(cmd) => match cmd {
-                "START" => return self.parse_start(&mut split),
-                "END" => return self.parse_end(&mut split),
-                "MOVE" => return self.parse_move(&mut split),
-                "ACK" => return self.parse_ack(&mut split),
-                "BYE" => return self.parse_bye(&mut split),
-                _ => return Err("Invalid command".to_string()),
+                "START" => self.parse_start(&mut split),
+                "END" => self.parse_end(&mut split),
+                "MOVE" => self.parse_move(&mut split),
+                "ACK" => self.parse_ack(&mut split),
+                "BYE" => self.parse_bye(&mut split),
+                _ => Err("Invalid command".to_string()),
             },
-            None => return Err("test".to_string()),
+            None => Err("test".to_string()),
         }
     }
 
@@ -154,22 +147,22 @@ impl Client {
     }
 
     fn parse_ack(&self, split: &mut SplitWhitespace) -> Result<ServerMessage, String> {
-        let remaining_time_ms = match split.next() {
-            Some(s) => match s.parse() {
-                Ok(i) => i,
-                Err(_) => return Err("While parsing ack: Invalid time.".to_string()),
-            },
-            None => return Err("While parsing ack: Invalid message.".to_string()),
-        };
-        Ok(ServerMessage::Ack { remaining_time_ms })
+        split
+            .next()
+            .ok_or("While parsing ack: Invalid message.".to_string())
+            .and_then(|s| {
+                s.parse()
+                    .map_err(|_| "While parsing ack: Invalid time.".to_string())
+            })
+            .map(|remaining_time_ms| ServerMessage::Ack { remaining_time_ms })
     }
 
     fn parse_bye(&self, split: &mut SplitWhitespace) -> Result<ServerMessage, String> {
-        let stat = match split.next() {
-            Some(s) => s,
-            None => return Err("While parsing bye: Invalid message.".to_string()),
-        }
-        .to_string();
-        Ok(ServerMessage::Bye { stat })
+        split
+            .next()
+            .ok_or("While parsing bye: Invalid message.".to_string())
+            .map(|s| ServerMessage::Bye {
+                stat: s.to_string(),
+            })
     }
 }
