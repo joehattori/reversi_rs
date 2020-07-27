@@ -45,12 +45,15 @@ pub struct Game {
     pub board: Board,
     time: u32,
     strategy: Box<dyn Strategy>,
+    win_game_count: u8,
+    lose_game_count: u8,
+    tie_game_count: u8,
 }
 
 impl Game {
     const ENDGAME_BORDER: u8 = 20;
     const MIDGAME_BORDER: u8 = 40;
-    const NEGA_SCOUT_DEPTH: u8 = 8;
+    const NEGA_SCOUT_DEPTH: u8 = 7;
 
     fn empty(client: Client, player: Player, opponent: Player, time: u32) -> Self {
         Self {
@@ -61,6 +64,9 @@ impl Game {
             board: Board::initial(),
             time: time,
             strategy: Box::new(Strategy::default()),
+            win_game_count: 0,
+            lose_game_count: 0,
+            tie_game_count: 0,
         }
     }
 
@@ -172,13 +178,26 @@ impl Game {
 
     fn on_end_message(&mut self, result: GameResult, player_count: u8, op_count: u8, reason: &str) {
         let result_str = match result {
-            GameResult::Win => "You win!",
-            GameResult::Lose => "You lose!",
-            GameResult::Tie => "Tie game!",
+            GameResult::Win => {
+                self.win_game_count += 1;
+                "You win!"
+            }
+            GameResult::Lose => {
+                self.lose_game_count += 1;
+                "You lose!"
+            }
+            GameResult::Tie => {
+                self.tie_game_count += 1;
+                "Tie game!"
+            }
         };
         println!(
             "{}. {}'s count: {}, {}'s count: {}, reason: {}",
             result_str, self.player.name, player_count, self.opponent.name, op_count, reason
+        );
+        println!(
+            "Results so far:\n\twin:  {}\n\tlose: {}\n\ttie:  {}",
+            self.win_game_count, self.lose_game_count, self.tie_game_count
         );
         self.state = State::Wait;
     }

@@ -29,8 +29,8 @@ pub fn load_from_file() {
                 panic!("Invalid indicator {}", indicator)
             }
         };
-        for i in 0..30 {
-            let s: String = line[i * 3..(i + 1) * 3].to_string();
+        for i in 0..25 {
+            let s = line[i * 3..(i + 1) * 3].to_string();
             if indicator != s.chars().collect::<Vec<char>>()[0] {
                 continue;
             }
@@ -39,16 +39,18 @@ pub fn load_from_file() {
                 Color::Dark => &mut dark_moves_count,
                 Color::Light => &mut light_moves_count,
             };
-            target_count
-                .entry(board)
-                .and_modify(|hm| {
-                    let _ = *hm.entry(square).and_modify(|c| *c += 1).or_insert(1);
-                })
-                .or_insert_with(|| {
-                    let mut hm = HashMap::new();
-                    hm.insert(square, 1);
-                    hm
-                });
+            for b in [board.rotate_90(), board.rotate_180(), board.rotate_270()].iter() {
+                target_count
+                    .entry(*b)
+                    .and_modify(|hm| {
+                        let _ = *hm.entry(square).and_modify(|c| *c += 1).or_insert(1);
+                    })
+                    .or_insert_with(|| {
+                        let mut hm = HashMap::new();
+                        hm.insert(square, 1);
+                        hm
+                    });
+            }
             board = board.flip(square, winner);
         }
     }
@@ -82,6 +84,4 @@ pub fn load_from_file() {
             .unwrap();
         LIGHT_MOVES.lock().unwrap().insert(*k, square);
     });
-    println!("len: {}", DARK_MOVES.lock().unwrap().len());
-    println!("len: {}", LIGHT_MOVES.lock().unwrap().len());
 }

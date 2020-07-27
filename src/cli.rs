@@ -17,20 +17,17 @@ impl Client {
         let r_stream =
             net::TcpStream::connect(addr).expect(&format!("Couldn't connect to {}:{}", host, port));
         let w_stream = r_stream.try_clone().expect("Couldn't clone stream.");
-        let w = io::BufWriter::new(w_stream);
-        let r = io::BufReader::new(r_stream);
         Self {
-            reader: r,
-            writer: w,
+            reader: io::BufReader::new(r_stream),
+            writer: io::BufWriter::new(w_stream),
         }
     }
 
     pub fn poll_message(&mut self) -> Result<ServerMessage, String> {
         loop {
             let mut buf = String::new();
-            match self.reader.read_line(&mut buf) {
-                Ok(_) => (),
-                Err(_) => return Err("Error occured while reading message.".to_string()),
+            if self.reader.read_line(&mut buf).is_err() {
+                return Err("Error occured while reading message.".to_string());
             }
             if buf.len() == 0 {
                 continue;
@@ -45,9 +42,10 @@ impl Client {
             .map_err(|_| "Couldn't send.".to_string())
             .map(|_| {
                 self.writer.flush().unwrap();
-                println!("Sent {}", msg);
+                //println!("Sent {}", msg);
             })
     }
+
     pub fn parse_input(&self, buf: String) -> Result<ServerMessage, String> {
         let mut split = buf.split_whitespace();
         match split.next() {
