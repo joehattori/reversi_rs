@@ -6,7 +6,7 @@ mod message;
 
 use clap::Arg;
 
-use crate::game::common::Game;
+use crate::game::base::Game;
 use crate::game::opening_db::load_from_file;
 
 const DEFAULT_PORT: &str = "3000";

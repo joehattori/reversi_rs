@@ -1,4 +1,4 @@
-use crate::game::common::Color;
+use crate::game::base::Color;
 use crate::game::square::Square;
 use crate::game::util::clz;
 
@@ -9,6 +9,9 @@ pub struct Board {
 }
 
 impl Board {
+    const MOUNTAIN_PARAM: f32 = 2_f32;
+    const PURE_MOUNTAIN_PARAM: f32 = 4_f32;
+
     pub fn initial() -> Self {
         Self {
             dark: 1u64 << Square::from_str("D5").unwrap().to_uint()
@@ -234,8 +237,49 @@ impl Board {
 
     // TODO: elaborate
     pub fn score(&self, color: Color) -> f32 {
-        // prevent division by zero
-        1_f32 / (self.flippable_squares(color.opposite()).count_ones() + 1) as f32
+        self.flippable_score(color) + self.mountain_score(color)
+    }
+
+    // mainly use this for debug.
+    #[allow(dead_code)]
+    pub fn rotate_90(&self) -> Self {
+        let tmp = self.light;
+        let mut light = 0x00000000f0f0f0f0u64 & (tmp << 4);
+        light |= 0xf0f0f0f00f0f0f0fu64 & (tmp << 32);
+        light |= 0xf0f0f0f00f0f0f0fu64 & (tmp >> 32);
+        light |= 0x0f0f0f0f00000000u64 & (tmp >> 4);
+
+        let tmp = light;
+        light = 0x0000cccc0000cccc & (tmp << 2);
+        light |= 0xcccc0000cccc0000 & (tmp << 16);
+        light |= 0x0000333300003333 & (tmp >> 16);
+        light |= 0x3333000033330000 & (tmp >> 2);
+
+        let tmp = light;
+        light = 0x00aa00aa00aa00aa & (tmp << 1);
+        light |= 0xaa00aa00aa00aa00 & (tmp << 8);
+        light |= 0x0055005500550055 & (tmp >> 8);
+        light |= 0x5500550055005500 & (tmp >> 1);
+
+        let tmp = self.dark;
+        let mut dark = 0x00000000f0f0f0f0u64 & (tmp << 4);
+        dark |= 0xf0f0f0f00f0f0f0fu64 & (tmp << 32);
+        dark |= 0xf0f0f0f00f0f0f0fu64 & (tmp >> 32);
+        dark |= 0x0f0f0f0f00000000u64 & (tmp >> 4);
+
+        let tmp = dark;
+        dark = 0x0000cccc0000cccc & (tmp << 2);
+        dark |= 0xcccc0000cccc0000 & (tmp << 16);
+        dark |= 0x0000333300003333 & (tmp >> 16);
+        dark |= 0x3333000033330000 & (tmp >> 2);
+
+        let tmp = dark;
+        dark = 0x00aa00aa00aa00aa & (tmp << 1);
+        dark |= 0xaa00aa00aa00aa00 & (tmp << 8);
+        dark |= 0x0055005500550055 & (tmp >> 8);
+        dark |= 0x5500550055005500 & (tmp >> 1);
+
+        Self { light, dark }
     }
 
     fn target_boards(&self, color: Color) -> (u64, u64) {
@@ -256,6 +300,49 @@ impl Board {
     fn is_end(&self) -> bool {
         (self.dark & self.light).count_ones() == 64
     }
+
+    fn mountain_score(&self, color: Color) -> f32 {
+        let board = match color {
+            Color::Dark => self.dark,
+            Color::Light => self.light,
+        };
+        let mut score = 0_f32;
+        if board & 0x7e00000000000000 == 0x7e00000000000000 {
+            score += if board & 0x7e3c000000000000 == 0x7e3c000000000000 {
+                Self::PURE_MOUNTAIN_PARAM
+            } else {
+                Self::MOUNTAIN_PARAM
+            };
+        }
+        if board & 0x1010101010100 == 0x1010101010100 {
+            score += if board & 0x1030303030100 == 0x1030303030100 {
+                Self::PURE_MOUNTAIN_PARAM
+            } else {
+                Self::MOUNTAIN_PARAM
+            };
+        }
+        if board & 0x7e == 0x7e {
+            score += if board & 0x3c7e == 0x3c7e {
+                Self::PURE_MOUNTAIN_PARAM
+            } else {
+                Self::MOUNTAIN_PARAM
+            };
+        }
+        if board & 0x80c0c0c0c08000 == 0x80c0c0c0c08000 {
+            score += if board & 0x7e3c000000000000 == 0x7e3c000000000000 {
+                Self::PURE_MOUNTAIN_PARAM
+            } else {
+                Self::MOUNTAIN_PARAM
+            };
+        }
+        score
+    }
+
+    fn flippable_score(&self, color: Color) -> f32 {
+        // NEXT: take max
+        (self.flippable_squares(color).count_ones() + 1) as f32
+            / (self.flippable_squares(color.opposite()).count_ones() + 1) as f32
+    }
 }
 
 #[cfg(test)]
@@ -263,7 +350,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn winnable_color_test() {
+    fn winnable_color() {
         let boards = [
             Board {
                 dark: 0x6000100810120500,
@@ -279,5 +366,17 @@ mod tests {
             .iter()
             .zip(results.iter())
             .for_each(|(b, r)| assert_eq!(b.winnable_color(Color::Dark, false).unwrap(), *r));
+    }
+
+    #[test]
+    fn mountain_score() {
+        let board = Board {
+            dark: 0x7e0181818181817e,
+            light: 0,
+        };
+        assert_eq!(
+            board.mountain_score(Color::Dark),
+            Board::MOUNTAIN_PARAM * 3_f32
+        );
     }
 }

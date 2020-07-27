@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use std::fs;
 use std::sync::Mutex;
 
+use crate::game::base::Color;
 use crate::game::board::Board;
-use crate::game::common::Color;
 use crate::game::square::Square;
 
 lazy_static! {

@@ -1,5 +1,5 @@
+use crate::game::base::Color;
 use crate::game::board::Board;
-use crate::game::common::Color;
 use crate::game::opening_db::{DARK_MOVES, LIGHT_MOVES};
 use crate::game::square::Square;
 use crate::game::strategy::Strategy;

@@ -1,4 +1,4 @@
-use crate::game::common::{Color, GameResult};
+use crate::game::base::{Color, GameResult};
 use crate::game::square::Square;
 
 // client

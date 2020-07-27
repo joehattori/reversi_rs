@@ -1,5 +1,5 @@
+use crate::game::base::Color;
 use crate::game::board::Board;
-use crate::game::common::Color;
 use crate::game::square::Square;
 use crate::game::strategy::Strategy;
 
@@ -37,7 +37,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn next_move_test() {
+    fn next_move() {
         let boards = [
             Board {
                 dark: 0x6000100810120500,
