@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Square {
     // x and y are both 0 indexed
     pub x: u8,
@@ -9,7 +9,10 @@ impl Square {
     pub fn from_str(s: &str) -> Result<Self, &str> {
         let mut chars = s.chars();
         let x = match chars.next() {
-            Some(c) => c as u8 - 'A' as u8,
+            Some(c) => {
+                let base = if c.is_uppercase() { 'A' } else { 'a' };
+                c as u8 - base as u8
+            }
             None => return Err("While parsing Square: invalid square."),
         };
         let y = match chars.next() {

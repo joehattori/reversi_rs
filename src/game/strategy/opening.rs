@@ -9,8 +9,8 @@ pub struct Opening {}
 impl Strategy for Opening {
     fn next_move(&mut self, board: Board, color: Color) -> Option<Square> {
         let moves = match color {
-            Color::Dark => &*DARK_MOVES,
-            Color::Light => &*LIGHT_MOVES,
+            Color::Dark => DARK_MOVES.lock().unwrap(),
+            Color::Light => LIGHT_MOVES.lock().unwrap(),
         };
         moves.get(&board).map(|s| *s).or(naive(board, color))
     }

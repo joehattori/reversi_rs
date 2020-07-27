@@ -4,8 +4,10 @@ mod cli;
 mod game;
 mod message;
 
-use crate::game::common::Game;
 use clap::Arg;
+
+use crate::game::common::Game;
+use crate::game::opening_db::load_from_file;
 
 const DEFAULT_PORT: &str = "3000";
 const DEFAULT_HOST: &str = "localhost";
@@ -43,6 +45,7 @@ fn main() {
         .parse()
         .expect("Invalid port specified.");
     let name = matches.value_of("name").unwrap_or(DEFAULT_NAME);
+    load_from_file();
     let game = Game::launch(host, port, name).unwrap();
     game.main_loop();
     println!("Game Ended!");
