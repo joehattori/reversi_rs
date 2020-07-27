@@ -19,8 +19,13 @@ impl Strategy for NegaScout {
             if flippables & 1 << i != 0 {
                 let cur_square = Square::from_uint(i);
                 let next_board = board.flip(cur_square, color);
-                let score =
-                    -self.score(next_board, color.opposite(), self.depth, -100_f32, 100_f32);
+                let score = -self.score(
+                    next_board,
+                    color.opposite(),
+                    self.depth - 1,
+                    -100_f32,
+                    100_f32,
+                );
                 if cur_max < score {
                     cur_max = score;
                     ret = Some(cur_square);
@@ -47,6 +52,8 @@ impl NegaScout {
                 let next_board = board.flip(cur_square, color);
                 let opposite = color.opposite();
                 let score = if is_first {
+                    -self.score(next_board, opposite, depth - 1, -beta, -alpha)
+                } else {
                     is_first = false;
                     let tmp_score =
                         -self.score(next_board, opposite, depth - 1, -alpha - 1_f32, -alpha);
@@ -55,8 +62,6 @@ impl NegaScout {
                     } else {
                         tmp_score
                     }
-                } else {
-                    -self.score(next_board, opposite, depth - 1, -beta, -alpha)
                 };
                 if alpha < score {
                     alpha = score;

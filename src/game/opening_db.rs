@@ -29,7 +29,7 @@ pub fn load_from_file() {
                 panic!("Invalid indicator {}", indicator)
             }
         };
-        for i in 0..20 {
+        for i in 0..30 {
             let s: String = line[i * 3..(i + 1) * 3].to_string();
             if indicator != s.chars().collect::<Vec<char>>()[0] {
                 continue;

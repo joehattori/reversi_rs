@@ -50,7 +50,7 @@ pub struct Game {
 impl Game {
     const ENDGAME_BORDER: u8 = 20;
     const MIDGAME_BORDER: u8 = 40;
-    const NEGA_SCOUT_DEPTH: u8 = 7;
+    const NEGA_SCOUT_DEPTH: u8 = 8;
 
     fn empty(client: Client, player: Player, opponent: Player, time: u32) -> Self {
         Self {
@@ -66,10 +66,9 @@ impl Game {
 
     pub fn launch(host: &str, port: u32, name: &str) -> Result<Self, String> {
         let mut client = Client::new(host, port);
-        match client.send_message(&open_message(name)) {
-            Ok(_) => (),
-            Err(_) => return Err("Couldn't start game.".to_string()),
-        };
+        if client.send_message(&open_message(name)).is_err() {
+            return Err("Couldn't start game.".to_string());
+        }
 
         // initialize players with dummy information.
         let player = Player {
@@ -121,7 +120,7 @@ impl Game {
         let msg = self.perform_player_move();
         self.state = State::OpponentTurn;
         self.client.send_message(&msg).unwrap();
-        self.board.print();
+        //self.board.print();
         match self.client.poll_message().unwrap() {
             ServerMessage::Ack { remaining_time_ms } => self.time = remaining_time_ms,
             ServerMessage::End {
@@ -129,28 +128,22 @@ impl Game {
                 player_count,
                 op_count,
                 reason,
-            } => {
-                self.on_end_message(result, player_count, op_count, &reason);
-            }
+            } => self.on_end_message(result, player_count, op_count, &reason),
             _ => panic!("Unexpected message: expected Ack"),
         };
     }
 
     fn handle_opponent_turn(&mut self) {
         match self.client.poll_message().unwrap() {
-            ServerMessage::Move { pos } => {
-                self.on_move_message(pos);
-            }
+            ServerMessage::Move { pos } => self.on_move_message(pos),
             ServerMessage::End {
                 result,
                 player_count,
                 op_count,
                 reason,
-            } => {
-                self.on_end_message(result, player_count, op_count, &reason);
-            }
+            } => self.on_end_message(result, player_count, op_count, &reason),
             _ => panic!("Unexpected message: expected Move or End"),
-        }
+        };
     }
 
     fn reset(&mut self) {
@@ -170,13 +163,10 @@ impl Game {
     }
 
     fn on_move_message(&mut self, pos: Option<Square>) {
-        match pos {
-            Some(square) => {
-                self.board = self.board.flip(square, self.opponent.color);
-            }
-            None => (),
-        };
-        self.board.print();
+        if let Some(square) = pos {
+            self.board = self.board.flip(square, self.opponent.color);
+        }
+        //self.board.print();
         self.state = State::PlayerTurn;
     }
 

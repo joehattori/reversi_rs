@@ -45,6 +45,7 @@ fn main() {
         .parse()
         .expect("Invalid port specified.");
     let name = matches.value_of("name").unwrap_or(DEFAULT_NAME);
+    println!("Loading opening db...");
     load_from_file();
     let game = Game::launch(host, port, name).unwrap();
     game.main_loop();
