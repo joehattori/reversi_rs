@@ -249,20 +249,22 @@ impl Board {
     pub fn winnable_color_last(&self, hand: Color, passed: bool) -> Option<Color> {
         let flippables = self.flippable_squares(hand);
         if flippables == 0 {
-            let opposite = hand.opposite();
             if passed {
-                return self.winner();
-            }
-            let flippables = self.flippable_squares(opposite);
-            if flippables == 0 {
-                return self.winner();
+                self.winner()
             } else {
-                let pos = flippables.trailing_zeros() as u8;
-                return self.flip(pos, opposite).winner();
+                let opposite = hand.opposite();
+                let flippables = self.flippable_squares(opposite);
+                if flippables == 0 {
+                    self.winner()
+                } else {
+                    let pos = flippables.trailing_zeros() as u8;
+                    self.flip(pos, opposite).winner()
+                }
             }
+        } else {
+            let pos = flippables.trailing_zeros() as u8;
+            self.flip(pos, hand).winner()
         }
-        let pos = flippables.trailing_zeros() as u8;
-        self.flip(pos, hand).winner()
     }
 
     #[inline]
