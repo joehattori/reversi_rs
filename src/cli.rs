@@ -1,10 +1,11 @@
-use crate::game::base::{Color, GameResult};
-use crate::game::square::Square;
-use crate::message::ServerMessage;
 use std::io;
 use std::io::{BufRead, Write};
 use std::net;
 use std::str::SplitWhitespace;
+
+use crate::game::base::{Color, GameResult};
+use crate::game::square::Square;
+use crate::message::ServerMessage;
 
 pub struct Client {
     reader: io::BufReader<net::TcpStream>,

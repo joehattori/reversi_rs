@@ -3,29 +3,27 @@ use crate::game::board::Board;
 use crate::game::square::Square;
 use crate::game::strategy::Strategy;
 
-pub struct Exhausive {}
+pub struct Exhausive();
 
 impl Strategy for Exhausive {
-    fn next_move(&mut self, board: Board, color: Color) -> Option<Square> {
+    fn next_move(&self, board: Board, color: Color, _: i32) -> Option<Square> {
         let flippables = board.flippable_squares(color);
         if flippables == 0 {
             return None;
         }
         let mut ret = None;
-        for i in 0..64 {
-            if flippables & 1 << i != 0 {
-                let square = Square::from_uint(i);
-                match board
-                    .flip(square, color)
-                    .winnable_color(color.opposite(), false)
-                {
-                    Some(c) => {
-                        if c == color {
-                            return Some(square);
-                        }
+        for i in (0..64).filter(|&x| flippables & 1 << x != 0) {
+            let square = Square::from_uint(i);
+            match board
+                .flip(square, color)
+                .winnable_color(color.opposite(), false)
+            {
+                Some(c) => {
+                    if c == color {
+                        return Some(square);
                     }
-                    None => ret = ret.or(Some(square)),
                 }
+                None => ret = ret.or(Some(square)),
             }
         }
         if ret.is_none() {
@@ -53,10 +51,10 @@ mod tests {
             },
         ];
         let next_moves = ["E8", "H1"];
-        let mut e = Exhausive {};
+        let e = Exhausive();
         for (b, s) in boards.iter().zip(next_moves.iter()) {
             assert_eq!(
-                e.next_move(b.clone(), Color::Dark).unwrap().to_string(),
+                e.next_move(b.clone(), Color::Dark, 0).unwrap().to_string(),
                 s.to_string()
             );
         }

@@ -14,7 +14,7 @@ impl Board {
     const CORNER_FLIPPABLE_WEIGHT: i16 = 100;
     const WING_WEIGHT: i16 = -40;
     const SUB_WING_WEIGHT: i16 = -20;
-    const SOLID_DISK_WEIGHT: i16 = 20;
+    const SOLID_DISK_WEIGHT: i16 = 60;
     const SQUARE_VALUES: [i16; 64] = [
         100, -10, 0, -1, -1, 0, -10, 100, -10, -15, -3, -3, -3, -3, -15, -10, 0, -3, 0, -1, -1, 0,
         -3, 0, -1, -3, -1, -1, -1, -1, -3, -1, -1, -3, -1, -1, -1, -1, -3, -1, 0, -3, 0, -1, -1, 0,
@@ -465,7 +465,7 @@ impl Board {
             .zip(corners_dirs.iter())
             .fold(0, |ret, (corner, dirs)| {
                 ret + if board & 1_u64 << corner != 0 {
-                    dirs.iter().fold(0, |acum, dir| {
+                    dirs.iter().fold(1, |acum, dir| {
                         acum + self.solid_disks_line(color, *corner as i8, *dir, 6)
                     })
                 } else {
@@ -478,7 +478,7 @@ impl Board {
         let new_square = square + diff;
         if dep == 0 {
             0
-        } else if self.disks_of_color(color) & 1 << square != 0 {
+        } else if self.disks_of_color(color) & 1 << new_square != 0 {
             self.solid_disks_line(color, new_square, diff, dep - 1) + 1
         } else {
             0
@@ -543,8 +543,13 @@ mod tests {
             dark: 0x0000783c465c3c7e,
             light: 0x008080c0b8a0c080,
         };
-        board.print();
         assert_eq!(board.solid_disks_count(Color::Light), 7);
+
+        let board = Board {
+            dark: 0x0000783c465c3c7e,
+            light: 0x008080c0b8a04080,
+        };
+        assert_eq!(board.solid_disks_count(Color::Light), 1);
 
         // TODO: fix this case
         //let board = board.flip(Square::from_str("A1").unwrap(), Color::Light);

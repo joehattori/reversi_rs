@@ -4,10 +4,10 @@ use crate::game::opening_db::{DARK_MOVES, LIGHT_MOVES};
 use crate::game::square::Square;
 use crate::game::strategy::Strategy;
 
-pub struct Opening {}
+pub struct Opening();
 
 impl Strategy for Opening {
-    fn next_move(&mut self, board: Board, color: Color) -> Option<Square> {
+    fn next_move(&self, board: Board, color: Color, _: i32) -> Option<Square> {
         let moves = match color {
             Color::Dark => DARK_MOVES.lock().unwrap(),
             Color::Light => LIGHT_MOVES.lock().unwrap(),

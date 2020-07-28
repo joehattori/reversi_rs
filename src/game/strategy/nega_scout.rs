@@ -1,32 +1,55 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::{Duration, Instant};
+
 use crate::game::base::Color;
 use crate::game::board::Board;
 use crate::game::square::Square;
 use crate::game::strategy::Strategy;
 
-pub struct NegaScout {
-    pub depth: u8,
-}
+pub struct NegaScout();
 
 impl Strategy for NegaScout {
-    fn next_move(&mut self, board: Board, color: Color) -> Option<Square> {
+    fn next_move(&self, board: Board, color: Color, remaining_time_ms: i32) -> Option<Square> {
+        let should_stop = AtomicBool::new(false);
         let flippables = board.flippable_squares(color);
         if flippables == 0 {
             return None;
         }
+        let count = flippables.count_ones();
+        let depth = if count < 4 {
+            8
+        } else if count < 8 {
+            6
+        } else {
+            4
+        };
         let mut ret = None;
         let mut cur_max = -5000;
         let opposite = color.opposite();
-        for i in 0..64 {
-            if flippables & 1 << i != 0 {
-                let cur_square = Square::from_uint(i);
-                let next_board = board.flip(cur_square, color);
-                let score = -Self::nega_scout(next_board, opposite, self.depth - 1, -5000, 5000);
-                if cur_max < score {
-                    cur_max = score;
-                    ret = Some(cur_square);
-                } else if ret.is_none() {
-                    ret = Some(cur_square);
-                }
+        // need atmost 30 secs to execute exhausive search at the end.
+        let time_limit = Duration::from_millis(remaining_time_ms as u64 / 2);
+        let now = Instant::now();
+        for i in (0..64).filter(|&x| flippables & 1 << x != 0) {
+            if now.elapsed() > time_limit {
+                println!("Timeout! Aborting.");
+                should_stop.store(true, Ordering::Relaxed);
+            }
+            let cur_square = Square::from_uint(i);
+            let next_board = board.flip(cur_square, color);
+            let score = -Self::nega_scout(
+                next_board,
+                opposite,
+                depth,
+                -5000,
+                5000,
+                time_limit / count,
+                &should_stop,
+            );
+            if cur_max < score {
+                cur_max = score;
+                ret = Some(cur_square);
+            } else if ret.is_none() {
+                ret = Some(cur_square);
             }
         }
         ret
@@ -34,25 +57,65 @@ impl Strategy for NegaScout {
 }
 
 impl NegaScout {
-    fn nega_scout(board: Board, color: Color, depth: u8, mut alpha: i16, beta: i16) -> i16 {
+    fn nega_scout(
+        board: Board,
+        color: Color,
+        depth: u8,
+        mut alpha: i16,
+        beta: i16,
+        time_limit: Duration,
+        should_stop: &AtomicBool,
+    ) -> i16 {
         let flippables = board.flippable_squares(color);
-        if depth == 0 || flippables == 0 {
+        if depth == 0 || flippables == 0 || should_stop.load(Ordering::Relaxed) {
             return board.score(color);
         }
-        let mut is_first = true;
 
-        for i in Self::order_moves(board, color) {
+        let now = Instant::now();
+        let opposite = color.opposite();
+        let (first, rest) = Self::order_moves(board, color);
+        let next_board = board.flip(Square::from_uint(first), color);
+        let score = -Self::nega_scout(
+            next_board,
+            opposite,
+            depth - 1,
+            -beta,
+            -alpha,
+            time_limit / 3,
+            &should_stop,
+        );
+        if alpha < score {
+            alpha = score;
+        }
+        let count = rest.len() as u32;
+        for i in rest {
+            if now.elapsed() > time_limit || should_stop.load(Ordering::Relaxed) {
+                println!("Timeout! Aborting.");
+                should_stop.store(true, Ordering::Relaxed);
+                break;
+            }
             let cur_square = Square::from_uint(i);
             let next_board = board.flip(cur_square, color);
-            let opposite = color.opposite();
-            let score = if is_first {
-                is_first = false;
-                -Self::mini_nega_scout(next_board, opposite, depth - 1, -beta, -alpha)
-            } else {
-                let tmp_score =
-                    -Self::mini_nega_scout(next_board, opposite, depth - 1, -alpha - 1, -alpha);
+            let score = {
+                let tmp_score = -Self::nega_scout(
+                    next_board,
+                    opposite,
+                    depth - 1,
+                    -alpha - 1,
+                    -alpha,
+                    time_limit / 2 / count,
+                    &should_stop,
+                );
                 if alpha < tmp_score && tmp_score < beta {
-                    -Self::mini_nega_scout(next_board, opposite, depth - 1, -beta, -tmp_score)
+                    -Self::nega_scout(
+                        next_board,
+                        opposite,
+                        depth - 1,
+                        -beta,
+                        -tmp_score,
+                        time_limit / 2 / count,
+                        &should_stop,
+                    )
                 } else {
                     tmp_score
                 }
@@ -69,36 +132,28 @@ impl NegaScout {
     }
 
     #[inline]
-    fn order_moves(board: Board, color: Color) -> Vec<u8> {
+    fn order_moves(board: Board, color: Color) -> (u8, Vec<u8>) {
         let flippables = board.flippable_squares(color);
-        let mut flippables = (0..64)
+        let flippables = (0..64)
             .filter(|&s| flippables & 1 << s != 0)
             .collect::<Vec<u8>>();
         // using mini_nega_scout is maybe too slow?
-        //let opposite = color.opposite();
-        flippables.sort_by(|a, b| {
-            let a_score = board.flip(Square::from_uint(*b), color).score(color);
-            let b_score = board.flip(Square::from_uint(*a), color).score(color);
-            b_score.partial_cmp(&a_score).unwrap()
-            //let next_a = -Self::mini_nega_scout(
-            //board.flip(Square::from_uint(*a), color),
-            //opposite,
-            //1,
-            //-5000,
-            //100_i16,
-            //);
-            //let next_b = -Self::mini_nega_scout(
-            //board.flip(Square::from_uint(*b), color),
-            //opposite,
-            //1,
-            //-5000,
-            //5000,
-            //);
-            //next_b.partial_cmp(&next_a).unwrap()
-        });
-        flippables
+        let max = flippables
+            .iter()
+            .cloned()
+            .max_by_key(|&x| board.flip(Square::from_uint(x), color).score(color))
+            .unwrap();
+        (
+            max,
+            flippables
+                .iter()
+                .cloned()
+                .filter(|&e| e != max)
+                .collect::<Vec<u8>>(),
+        )
     }
 
+    #[allow(dead_code)]
     fn mini_nega_scout(board: Board, color: Color, depth: u8, mut alpha: i16, beta: i16) -> i16 {
         let flippables = board.flippable_squares(color);
         if depth == 0 || flippables == 0 {

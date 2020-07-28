@@ -13,7 +13,7 @@ pub use nega_scout::NegaScout;
 pub use opening::Opening;
 
 pub trait Strategy {
-    fn next_move(&mut self, board: Board, color: Color) -> Option<Square>;
+    fn next_move(&self, board: Board, color: Color, remaining_time_ms: i32) -> Option<Square>;
 }
 
 impl dyn Strategy {

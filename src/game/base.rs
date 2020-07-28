@@ -53,7 +53,6 @@ pub struct Game {
 impl Game {
     const ENDGAME_BORDER: u8 = 20;
     const MIDGAME_BORDER: u8 = 40;
-    const NEGA_SCOUT_DEPTH: u8 = 7;
 
     fn empty(client: Client, player: Player, opponent: Player, time: i32) -> Self {
         Self {
@@ -204,7 +203,10 @@ impl Game {
 
     fn perform_player_move(&mut self) -> String {
         self.set_strategy();
-        match self.strategy.next_move(self.board, self.player.color) {
+        match self
+            .strategy
+            .next_move(self.board, self.player.color, self.time)
+        {
             Some(square) => {
                 self.board = self.board.flip(square, self.player.color);
                 move_message(square)
@@ -216,13 +218,11 @@ impl Game {
     fn set_strategy(&mut self) {
         let count = self.board.empty_squares_count();
         self.strategy = if count < Game::ENDGAME_BORDER {
-            Box::new(strategy::Exhausive {})
+            Box::new(strategy::Exhausive())
         } else if count < Game::MIDGAME_BORDER {
-            Box::new(strategy::NegaScout {
-                depth: Game::NEGA_SCOUT_DEPTH,
-            })
+            Box::new(strategy::NegaScout())
         } else {
-            Box::new(strategy::Opening {})
+            Box::new(strategy::Opening())
         };
     }
 }
