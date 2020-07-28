@@ -53,7 +53,7 @@ pub struct Game {
 }
 
 impl Game {
-    const ENDGAME_BORDER: u8 = 20;
+    const ENDGAME_BORDER: u8 = 19;
     const MIDGAME_BORDER: u8 = 40;
 
     fn empty(client: Client, player: Player, opponent: Player, time: i32) -> Self {

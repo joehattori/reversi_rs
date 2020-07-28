@@ -9,12 +9,14 @@ pub struct Board {
 }
 
 impl Board {
+    // TODO: move this part to other file.
     const MOUNTAIN_WEIGHT: (i16, i16) = (40, 20);
     const PURE_MOUNTAIN_WEIGHT: (i16, i16) = (60, 30);
     const CORNER_FLIPPABLE_WEIGHT: (i16, i16) = (100, 50);
     const WING_WEIGHT: (i16, i16) = (-40, -20);
     const SUB_WING_WEIGHT: (i16, i16) = (-20, -10);
     const SOLID_DISK_WEIGHT: (i16, i16) = (60, 30);
+    const FLIPPABLE_COUNT_WEIGHT: (i16, i16) = (15, 40);
     const SQUARE_VALUES: [i16; 64] = [
         30, -12, 0, -1, -1, 0, -12, 30, -12, -15, -3, -3, -3, -3, -15, -12, 0, -3, 0, -1, -1, 0,
         -3, 0, -1, -3, -1, -1, -1, -1, -3, -1, -1, -3, -1, -1, -1, -1, -3, -1, 0, -3, 0, -1, -1, 0,
@@ -54,16 +56,16 @@ impl Board {
     }
 
     #[inline]
-    pub fn flip(&self, square: Square, color: Color) -> Self {
+    pub fn flip(&self, square: u8, color: Color) -> Self {
         let flipped = self.flipped_squares(square, color);
         match color {
             Color::Dark => Self {
-                dark: self.dark | 1u64 << square.to_uint() | flipped,
+                dark: self.dark | 1u64 << square | flipped,
                 light: self.light & !flipped,
             },
             Color::Light => Self {
                 dark: self.dark & !flipped,
-                light: self.light | 1u64 << square.to_uint() | flipped,
+                light: self.light | 1u64 << square | flipped,
             },
         }
     }
@@ -163,9 +165,8 @@ impl Board {
     }
 
     #[inline]
-    pub fn flipped_squares(&self, square: Square, color: Color) -> u64 {
+    pub fn flipped_squares(&self, square_uint: u8, color: Color) -> u64 {
         let (target_board, mut other_board) = self.target_boards(color);
-        let square_uint = square.to_uint();
 
         let mut ret = 0u64;
 
@@ -210,6 +211,8 @@ impl Board {
     pub fn winnable_color(&self, hand: Color, passed: bool) -> Option<Color> {
         if self.is_end() {
             return self.winner();
+        } else if self.is_last_move() {
+            return self.winnable_color_last(hand, passed);
         }
         let mut flippables = self.flippable_squares(hand);
         let opposite = hand.opposite();
@@ -230,10 +233,7 @@ impl Board {
                 flippables = 0;
                 pos = 64;
             };
-            match self
-                .flip(Square::from_uint(pos - 1), hand)
-                .winnable_color(opposite, false)
-            {
+            match self.flip(pos - 1, hand).winnable_color(opposite, false) {
                 Some(c) => {
                     if c == hand {
                         return Some(hand);
@@ -246,6 +246,26 @@ impl Board {
     }
 
     #[inline]
+    pub fn winnable_color_last(&self, hand: Color, passed: bool) -> Option<Color> {
+        let flippables = self.flippable_squares(hand);
+        if flippables == 0 {
+            let opposite = hand.opposite();
+            if passed {
+                return self.winner();
+            }
+            let flippables = self.flippable_squares(opposite);
+            if flippables == 0 {
+                return self.winner();
+            } else {
+                let pos = flippables.trailing_zeros() as u8;
+                return self.flip(pos, opposite).winner();
+            }
+        }
+        let pos = flippables.trailing_zeros() as u8;
+        self.flip(pos, hand).winner()
+    }
+
+    #[inline]
     pub fn empty_squares_count(&self) -> u8 {
         (self.dark | self.light).count_zeros() as u8
     }
@@ -254,6 +274,7 @@ impl Board {
     pub fn score(&self, color: Color) -> i16 {
         self.raw_score(color)
             + self.flippable_score(color)
+            + self.flippable_count_score(color)
             + self.mountain_score(color)
             + self.corner_flippable_score(color)
             + self.wing_score(color)
@@ -412,6 +433,13 @@ impl Board {
     }
 
     #[inline]
+    fn flippable_count_score(&self, color: Color) -> i16 {
+        let (target, opponent) = self.target_boards(color);
+        (target.count_ones() as i16 - opponent.count_ones() as i16)
+            * self.get_weight(Self::FLIPPABLE_COUNT_WEIGHT)
+    }
+
+    #[inline]
     fn raw_score(&self, color: Color) -> i16 {
         let (target, opponent) = self.target_boards(color);
         (0..64)
@@ -467,7 +495,12 @@ impl Board {
 
     #[inline]
     fn is_end(&self) -> bool {
-        (self.dark | self.light).count_ones() == 64
+        (self.dark | self.light).count_zeros() == 0
+    }
+
+    #[inline]
+    fn is_last_move(&self) -> bool {
+        (self.dark | self.light).count_zeros() == 1
     }
 
     fn solid_disks_line(&self, color: Color, square: i8, diff: i8, dep: u8) -> i8 {
