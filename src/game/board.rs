@@ -9,16 +9,18 @@ pub struct Board {
 }
 
 impl Board {
-    const MOUNTAIN_WEIGHT: f32 = 40_f32;
-    const PURE_MOUNTAIN_WEIGHT: f32 = 60_f32;
-    const CORNER_FLIPPABLE_WEIGHT: f32 = 80_f32;
-    const WING_WEIGHT: f32 = -40_f32;
-    const FLIPPABLE_WEIGHT: f32 = 10_f32;
+    const MOUNTAIN_WEIGHT: i16 = 40;
+    const PURE_MOUNTAIN_WEIGHT: i16 = 60;
+    const CORNER_FLIPPABLE_WEIGHT: i16 = 100;
+    const WING_WEIGHT: i16 = -40;
+    const SUB_WING_WEIGHT: i16 = -20;
+    const SOLID_DISK_WEIGHT: i16 = 20;
     const SQUARE_VALUES: [i16; 64] = [
         100, -10, 0, -1, -1, 0, -10, 100, -10, -15, -3, -3, -3, -3, -15, -10, 0, -3, 0, -1, -1, 0,
         -3, 0, -1, -3, -1, -1, -1, -1, -3, -1, -1, -3, -1, -1, -1, -1, -3, -1, 0, -3, 0, -1, -1, 0,
         -3, 0, -10, -15, -3, -3, -3, -3, -15, -10, 100, -10, 0, -1, -1, 0, -10, 100,
     ];
+    const DISKS_DIFF_WEIGHT: i16 = 10;
 
     pub fn initial() -> Self {
         Self {
@@ -250,14 +252,21 @@ impl Board {
     }
 
     #[inline]
-    pub fn score(&self, color: Color) -> f32 {
-        self.raw_score(color) as f32
+    pub fn score(&self, color: Color) -> i16 {
+        self.raw_score(color)
             + self.flippable_score(color)
             + self.mountain_score(color)
             + self.corner_flippable_score(color)
             + self.wing_score(color)
-            + self.solid_disks_score(color) as f32
-            - self.solid_disks_score(color.opposite()) as f32
+            + self.solid_disks_score(color)
+            + self.sub_wing_score(color)
+            + if (self.dark | self.light).count_ones() > 30 {
+                let (target, opponent) = self.target_boards(color);
+                (target.count_ones() as i16 - opponent.count_ones() as i16)
+                    * Self::DISKS_DIFF_WEIGHT
+            } else {
+                0
+            }
     }
 
     pub fn rotate_90(&self) -> Self {
@@ -329,12 +338,12 @@ impl Board {
 
     #[inline]
     fn is_end(&self) -> bool {
-        (self.dark & self.light).count_ones() == 64
+        (self.dark | self.light).count_ones() == 64
     }
 
     #[inline]
-    fn mountain_score(&self, color: Color) -> f32 {
-        let mut score = 0_f32;
+    fn mountain_score(&self, color: Color) -> i16 {
+        let mut score = 0;
 
         if self.has_shape(color, 0x7e00000000000000) {
             score += if self.has_shape(color, 0x7e3c000000000000) {
@@ -368,8 +377,8 @@ impl Board {
     }
 
     #[inline]
-    fn wing_score(&self, color: Color) -> f32 {
-        let mut score = 0_f32;
+    fn wing_score(&self, color: Color) -> i16 {
+        let mut score = 0;
         if self.has_shape(color, 0x7c00000000000000) && !self.has_shape(color, 0x7e00000000000000) {
             score += Self::WING_WEIGHT;
         }
@@ -386,45 +395,64 @@ impl Board {
     }
 
     #[inline]
-    fn corner_flippable_score(&self, color: Color) -> f32 {
-        let mut score = 0_f32;
+    fn sub_wing_score(&self, color: Color) -> i16 {
+        let mut score = 0;
+        if self.has_shape(color, 0x6) && !self.has_shape(color, 0xf) {
+            score += Self::SUB_WING_WEIGHT;
+        }
+        if self.has_shape(color, 0x808000) && !self.has_shape(color, 0x80808080) {
+            score += Self::SUB_WING_WEIGHT;
+        }
+        if self.has_shape(color, 0x6000000000000000) && !self.has_shape(color, 0xf000000000000000) {
+            score += Self::SUB_WING_WEIGHT;
+        }
+        if self.has_shape(color, 0x1010000000000) && !self.has_shape(color, 0x101010100000000) {
+            score += Self::SUB_WING_WEIGHT;
+        }
+        score
+    }
+
+    #[inline]
+    fn corner_flippable_score(&self, color: Color) -> i16 {
+        let mut score = 0;
         let flippables = self.flippable_squares(color);
-        if flippables & 0x8000000000000000 != 0 {
+        if flippables & 1 << 0 != 0 {
             score += Self::CORNER_FLIPPABLE_WEIGHT;
         }
-        if flippables & 0x0800000000000000 != 0 {
+        if flippables & 1 << 7 != 0 {
             score += Self::CORNER_FLIPPABLE_WEIGHT;
         }
-        if flippables & 0x0000000000000008 != 0 {
+        if flippables & 1 << 56 != 0 {
             score += Self::CORNER_FLIPPABLE_WEIGHT;
         }
-        if flippables & 0x0000000000000080 != 0 {
+        if flippables & 1 << 63 != 0 {
             score += Self::CORNER_FLIPPABLE_WEIGHT;
         }
         score
     }
 
     #[inline]
-    fn flippable_score(&self, color: Color) -> f32 {
-        // NEXT: take max
-        (self.flippable_squares(color).count_ones() + 1) as f32
-            / (self.flippable_squares(color.opposite()).count_ones() + 1) as f32
-            * Self::FLIPPABLE_WEIGHT
+    fn flippable_score(&self, color: Color) -> i16 {
+        let player_flippable = self.flippable_squares(color);
+        let opponent_flippable = self.flippable_squares(color.opposite());
+        (0..64)
+            .filter(|i| player_flippable & 1_u64 << i != 0)
+            .fold(0, |ret, i| ret + Self::SQUARE_VALUES[i])
+            - (0..64)
+                .filter(|i| opponent_flippable & 1_u64 << i != 0)
+                .fold(0, |ret, i| ret + Self::SQUARE_VALUES[i])
     }
 
     #[inline]
     fn raw_score(&self, color: Color) -> i16 {
-        let board = match color {
-            Color::Dark => self.dark,
-            Color::Light => self.light,
-        };
+        let board = self.disks_of_color(color);
         (0..64)
-            .filter(|i| board as i64 & 1_i64 << i != 0)
+            .filter(|i| board & 1_u64 << i != 0)
             .fold(0, |ret, i| ret + Self::SQUARE_VALUES[i])
     }
 
     fn solid_disks_score(&self, color: Color) -> i16 {
-        self.solid_disks_count(color) as i16 * 10
+        self.solid_disks_count(color) as i16 * Self::SOLID_DISK_WEIGHT
     }
 
     // TODO: fix double count
@@ -502,7 +530,7 @@ mod tests {
         };
         assert_eq!(
             board.mountain_score(Color::Dark),
-            Board::MOUNTAIN_WEIGHT * 3_f32
+            Board::MOUNTAIN_WEIGHT * 3
         );
     }
 

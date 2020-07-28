@@ -24,9 +24,13 @@ impl Strategy for Exhausive {
                             return Some(square);
                         }
                     }
-                    None => ret = Some(square),
+                    None => ret = ret.or(Some(square)),
                 }
             }
+        }
+        if ret.is_none() {
+            println!("LOSE color: {:?}", color);
+            board.print();
         }
         ret.or(Some(Square::from_uint(flippables.trailing_zeros() as u8)))
     }

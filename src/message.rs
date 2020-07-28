@@ -19,7 +19,7 @@ pub enum ServerMessage {
     Start {
         color: Color,
         op_name: String,
-        remaining_time_ms: u32,
+        remaining_time_ms: i32,
     },
     End {
         result: GameResult,
@@ -31,7 +31,7 @@ pub enum ServerMessage {
         pos: Option<Square>,
     },
     Ack {
-        remaining_time_ms: u32,
+        remaining_time_ms: i32,
     },
     Bye {
         stat: String,

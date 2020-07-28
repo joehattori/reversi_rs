@@ -47,6 +47,7 @@ fn main() {
     let name = matches.value_of("name").unwrap_or(DEFAULT_NAME);
     println!("Loading opening db...");
     load_from_file();
+    println!("Launching reversi...");
     let game = Game::launch(host, port, name).unwrap();
     game.main_loop();
     println!("Game Ended!");

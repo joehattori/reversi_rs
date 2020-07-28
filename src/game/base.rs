@@ -43,7 +43,7 @@ pub struct Game {
     player: Player,
     opponent: Player,
     pub board: Board,
-    time: u32,
+    time: i32,
     strategy: Box<dyn Strategy>,
     win_game_count: u8,
     lose_game_count: u8,
@@ -55,7 +55,7 @@ impl Game {
     const MIDGAME_BORDER: u8 = 40;
     const NEGA_SCOUT_DEPTH: u8 = 7;
 
-    fn empty(client: Client, player: Player, opponent: Player, time: u32) -> Self {
+    fn empty(client: Client, player: Player, opponent: Player, time: i32) -> Self {
         Self {
             client: client,
             state: State::Wait,
@@ -157,7 +157,7 @@ impl Game {
         self.strategy = Box::new(Strategy::default());
     }
 
-    fn on_start_message(&mut self, color: Color, op_name: &str, time: u32) {
+    fn on_start_message(&mut self, color: Color, op_name: &str, time: i32) {
         self.player.color = color;
         self.opponent.color = color.opposite();
         self.opponent.name = op_name.to_string();
