@@ -336,30 +336,30 @@ impl Board {
 
         if self.has_shape(color, 0x7e00000000000000) {
             score += if self.has_shape(color, 0x7e3c000000000000) {
-                self.get_weight(Self::MOUNTAIN_WEIGHT)
-            } else {
                 self.get_weight(Self::PURE_MOUNTAIN_WEIGHT)
+            } else {
+                self.get_weight(Self::MOUNTAIN_WEIGHT)
             }
         }
         if self.has_shape(color, 0x1010101010100) {
             score += if self.has_shape(color, 0x1030303030100) {
-                self.get_weight(Self::MOUNTAIN_WEIGHT)
-            } else {
                 self.get_weight(Self::PURE_MOUNTAIN_WEIGHT)
+            } else {
+                self.get_weight(Self::MOUNTAIN_WEIGHT)
             }
         }
         if self.has_shape(color, 0x7e) {
             score += if self.has_shape(color, 0x3c7e) {
-                self.get_weight(Self::MOUNTAIN_WEIGHT)
-            } else {
                 self.get_weight(Self::PURE_MOUNTAIN_WEIGHT)
+            } else {
+                self.get_weight(Self::MOUNTAIN_WEIGHT)
             }
         }
         if self.has_shape(color, 0x80808080808000) {
             score += if self.has_shape(color, 0x80c0c0c0c08000) {
-                self.get_weight(Self::MOUNTAIN_WEIGHT)
-            } else {
                 self.get_weight(Self::PURE_MOUNTAIN_WEIGHT)
+            } else {
+                self.get_weight(Self::MOUNTAIN_WEIGHT)
             }
         }
         score
@@ -566,9 +566,10 @@ mod tests {
             dark: 0x7e0181818181817e,
             light: 0,
         };
+        board.print();
         assert_eq!(
             board.mountain_score(Color::Dark),
-            Board::MOUNTAIN_WEIGHT * 3
+            board.get_weight(Board::MOUNTAIN_WEIGHT) * 3
         );
     }
 

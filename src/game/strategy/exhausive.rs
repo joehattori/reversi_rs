@@ -12,18 +12,17 @@ impl Strategy for Exhausive {
             return None;
         }
         let mut ret = None;
-        for i in order_moves(board, color, flippables) {
-            let square = Square::from_uint(i);
+        for square in order_moves(board, color, flippables) {
             match board
                 .flip(square, color)
                 .winnable_color(color.opposite(), false)
             {
                 Some(c) => {
                     if c == color {
-                        return Some(square);
+                        return Some(Square::from_uint(square));
                     }
                 }
-                None => ret = ret.or(Some(square)),
+                None => ret = ret.or(Some(Square::from_uint(square))),
             }
         }
         if ret.is_none() {
@@ -39,8 +38,8 @@ fn order_moves(board: Board, color: Color, flippables: u64) -> Vec<u8> {
         .filter(|&x| flippables & 1 << x != 0)
         .collect::<Vec<u8>>();
     ret.sort_by(|a, b| {
-        let a_score = board.flip(Square::from_uint(*a), color).score(color);
-        let b_score = board.flip(Square::from_uint(*b), color).score(color);
+        let a_score = board.flip(*a, color).score(color);
+        let b_score = board.flip(*b, color).score(color);
         b_score.partial_cmp(&a_score).unwrap()
     });
     ret

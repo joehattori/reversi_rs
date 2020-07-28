@@ -51,7 +51,7 @@ pub fn load_from_file() {
                         hm
                     });
             }
-            board = board.flip(square, winner);
+            board = board.flip(square.to_uint(), winner);
         }
     }
 

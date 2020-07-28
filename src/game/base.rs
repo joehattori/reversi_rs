@@ -53,7 +53,7 @@ pub struct Game {
 }
 
 impl Game {
-    const ENDGAME_BORDER: u8 = 19;
+    const ENDGAME_BORDER: u8 = 20;
     const MIDGAME_BORDER: u8 = 40;
 
     fn empty(client: Client, player: Player, opponent: Player, time: i32) -> Self {
@@ -171,7 +171,7 @@ impl Game {
 
     fn on_move_message(&mut self, pos: Option<Square>) {
         if let Some(square) = pos {
-            self.board = self.board.flip(square, self.opponent.color);
+            self.board = self.board.flip(square.to_uint(), self.opponent.color);
         }
         //self.board.print();
         self.state = State::PlayerTurn;
@@ -210,7 +210,7 @@ impl Game {
             .next_move(self.board, self.player.color, self.time)
         {
             Some(square) => {
-                self.board = self.board.flip(square, self.player.color);
+                self.board = self.board.flip(square.to_uint(), self.player.color);
                 move_message(square)
             }
             None => pass_message(),

@@ -42,8 +42,7 @@ impl Strategy for NegaScout {
                     Duration::new(0, 0)
                 }
             };
-            let cur_square = Square::from_uint(mv);
-            let next_board = board.flip(cur_square, color);
+            let next_board = board.flip(mv, color);
             let score = -self.nega_scout(
                 next_board,
                 opposite,
@@ -52,6 +51,7 @@ impl Strategy for NegaScout {
                 5000,
                 remaining / (count - i as u32),
             );
+            let cur_square = Square::from_uint(mv);
             if cur_max < score {
                 cur_max = score;
                 ret = Some(cur_square);
@@ -91,7 +91,7 @@ impl NegaScout {
             }
         };
         let score = -self.nega_scout(
-            board.flip(Square::from_uint(first), color),
+            board.flip(first, color),
             opposite,
             depth - 1,
             -beta,
@@ -103,8 +103,7 @@ impl NegaScout {
             if self.should_stop.load(Ordering::Relaxed) {
                 break;
             }
-            let cur_square = Square::from_uint(*mv);
-            let next_board = board.flip(cur_square, color);
+            let next_board = board.flip(*mv, color);
             let remaining = match time_limit.checked_sub(now.elapsed()) {
                 Some(t) => t,
                 None => {
@@ -164,7 +163,7 @@ impl NegaScout {
         let max = flippables
             .iter()
             .cloned()
-            .max_by_key(|&x| board.flip(Square::from_uint(x), color).score(color))
+            .max_by_key(|&x| board.flip(x, color).score(color))
             .unwrap();
         (
             max,
@@ -179,9 +178,8 @@ impl NegaScout {
             return board.score(color);
         }
         let mut is_first = true;
-        for i in (0..64).filter(|&s| flippables & 1 << s != 0) {
-            let cur_square = Square::from_uint(i);
-            let next_board = board.flip(cur_square, color);
+        for square in (0..64).filter(|&s| flippables & 1 << s != 0) {
+            let next_board = board.flip(square, color);
             let opposite = color.opposite();
             let score = if is_first {
                 is_first = false;
