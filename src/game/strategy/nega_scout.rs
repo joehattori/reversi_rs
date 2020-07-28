@@ -37,7 +37,7 @@ impl Strategy for NegaScout {
             let remaining = match time_limit.checked_sub(now.elapsed()) {
                 Some(t) => t,
                 None => {
-                    println!("Timeout! Aborting. This should not happen...");
+                    println!("Timeout! Aborting.");
                     self.should_stop.store(true, Ordering::Relaxed);
                     Duration::new(0, 0)
                 }
@@ -86,7 +86,6 @@ impl NegaScout {
             Some(t) => t,
             None => {
                 println!("Timeout! Aborting.");
-                self.should_stop.store(true, Ordering::Relaxed);
                 return board.score(color);
             }
         };
@@ -107,7 +106,6 @@ impl NegaScout {
             let remaining = match time_limit.checked_sub(now.elapsed()) {
                 Some(t) => t,
                 None => {
-                    println!("Timeout! Aborting.");
                     self.should_stop.store(true, Ordering::Relaxed);
                     break;
                 }
@@ -125,7 +123,6 @@ impl NegaScout {
                     Some(t) => t,
                     None => {
                         println!("Timeout! Aborting.");
-                        self.should_stop.store(true, Ordering::Relaxed);
                         break;
                     }
                 };

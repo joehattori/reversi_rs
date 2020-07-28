@@ -1,3 +1,7 @@
+use std::sync::atomic::AtomicBool;
+use std::time::{Duration, Instant};
+
+use super::NegaScout;
 use crate::game::base::Color;
 use crate::game::board::Board;
 use crate::game::square::Square;
@@ -6,13 +10,17 @@ use crate::game::strategy::Strategy;
 pub struct Exhausive();
 
 impl Strategy for Exhausive {
-    fn next_move(&self, board: Board, color: Color, _: i32) -> Option<Square> {
+    fn next_move(&self, board: Board, color: Color, time: i32) -> Option<Square> {
+        let now = Instant::now();
         let flippables = board.flippable_squares(color);
         if flippables == 0 {
             return None;
         }
         let mut ret = None;
         for square in order_moves(board, color, flippables) {
+            if now.elapsed() > Duration::from_millis(time as u64 / 3) {
+                return switch_to_nega_scout(board, color, time - now.elapsed().as_millis() as i32);
+            }
             match board
                 .flip(square, color)
                 .winnable_color(color.opposite(), false)
@@ -43,6 +51,13 @@ fn order_moves(board: Board, color: Color, flippables: u64) -> Vec<u8> {
         b_score.partial_cmp(&a_score).unwrap()
     });
     ret
+}
+
+fn switch_to_nega_scout(board: Board, color: Color, time: i32) -> Option<Square> {
+    NegaScout {
+        should_stop: AtomicBool::new(false),
+    }
+    .next_move(board, color, time)
 }
 
 #[cfg(test)]
