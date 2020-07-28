@@ -1,3 +1,5 @@
+use std::sync::atomic::AtomicBool;
+
 use crate::cli::Client;
 use crate::game::board::Board;
 use crate::game::square::Square;
@@ -220,7 +222,9 @@ impl Game {
         self.strategy = if count < Game::ENDGAME_BORDER {
             Box::new(strategy::Exhausive())
         } else if count < Game::MIDGAME_BORDER {
-            Box::new(strategy::NegaScout())
+            Box::new(strategy::NegaScout {
+                should_stop: AtomicBool::new(false),
+            })
         } else {
             Box::new(strategy::Opening())
         };
