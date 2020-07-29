@@ -11,13 +11,13 @@ pub struct Board {
 impl Board {
     // TODO: move this part to other file.
     // TODO: polish
-    const MOUNTAIN_WEIGHT: (i16, i16) = (40, 20);
-    const PURE_MOUNTAIN_WEIGHT: (i16, i16) = (60, 30);
-    const CORNER_FLIPPABLE_WEIGHT: (i16, i16) = (100, 50);
-    const WING_WEIGHT: (i16, i16) = (-40, -20);
-    const SUB_WING_WEIGHT: (i16, i16) = (-20, -10);
-    const SOLID_DISK_WEIGHT: (i16, i16) = (60, 30);
-    const FLIPPABLE_COUNT_WEIGHT: (i16, i16) = (15, 40);
+    const MOUNTAIN_WEIGHT: (i16, i16) = (15, 10);
+    const PURE_MOUNTAIN_WEIGHT: (i16, i16) = (20, 10);
+    const CORNER_FLIPPABLE_WEIGHT: (i16, i16) = (20, 10);
+    const WING_WEIGHT: (i16, i16) = (-15, -10);
+    const SUB_WING_WEIGHT: (i16, i16) = (-10, -5);
+    const SOLID_DISK_WEIGHT: (i16, i16) = (5, 5);
+    const FLIPPABLE_COUNT_WEIGHT: (i16, i16) = (1, 2);
     const SQUARE_VALUES: [i16; 64] = [
         30, -12, 0, -1, -1, 0, -12, 30, -12, -15, -3, -3, -3, -3, -15, -12, 0, -3, 0, -1, -1, 0,
         -3, 0, -1, -3, -1, -1, -1, -1, -3, -1, -1, -3, -1, -1, -1, -1, -3, -1, 0, -3, 0, -1, -1, 0,
@@ -472,7 +472,7 @@ impl Board {
 
     #[inline]
     fn get_weight(&self, weight: (i16, i16)) -> i16 {
-        if self.empty_squares_count() > 30 {
+        if self.empty_squares_count() > 20 {
             weight.0
         } else {
             weight.1

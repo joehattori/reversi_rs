@@ -1,6 +1,3 @@
-use std::sync::atomic::AtomicBool;
-use std::time::{Duration, Instant};
-
 use crate::cli::Client;
 use crate::game::board::Board;
 use crate::game::square::Square;
@@ -218,7 +215,7 @@ impl Game {
     fn set_strategy(&mut self) {
         let count = self.board.empty_squares_count();
         self.strategy = if count < Game::ENDGAME_BORDER {
-            Box::new(strategy::Exhausive::new(self.time as u64))
+            Box::new(strategy::Exhausive::new(self.time as u64 / 4))
         } else if count < Game::MIDGAME_BORDER {
             // need some time to execute exhausive search at the end.
             Box::new(strategy::NegaScout::new((self.time as u64 - 30000) / 4))

@@ -50,7 +50,7 @@ impl Exhausive {
         Self {
             should_stop: AtomicBool::new(false),
             now: Instant::now(),
-            time_limit: Duration::from_millis(time_limit_millisec / 2),
+            time_limit: Duration::from_millis(time_limit_millisec),
         }
     }
 
@@ -134,7 +134,7 @@ impl Exhausive {
     }
 
     fn switch_to_nega_scout(&self, board: Board, color: Color) -> Option<Square> {
-        NegaScout::new_from_duration(self.time_limit / 2).next_move(board, color)
+        NegaScout::new_from_duration(self.time_limit / 3 * 2).next_move(board, color)
     }
 }
 
