@@ -265,6 +265,30 @@ impl Board {
         Self { light, dark }
     }
 
+    pub fn rotate_180(&self) -> Self {
+        self.rotate_90().rotate_90()
+    }
+
+    pub fn rotate_270(&self) -> Self {
+        self.rotate_90().rotate_90().rotate_90()
+    }
+
+    pub fn mirror(&self) -> Self {
+        let mut tmp = self.dark;
+        tmp = ((tmp >> 8) & 0x00ff00ff00ff00ff) | ((tmp & 0x00ff00ff00ff00ff) << 8);
+        tmp = ((tmp >> 16) & 0x0000ffff0000ffff) | ((tmp & 0x0000ffff0000ffff) << 16);
+        tmp = (tmp >> 32) | (tmp << 32);
+        let dark = tmp;
+
+        let mut tmp = self.light;
+        tmp = ((tmp >> 8) & 0x00ff00ff00ff00ff) | ((tmp & 0x00ff00ff00ff00ff) << 8);
+        tmp = ((tmp >> 16) & 0x0000ffff0000ffff) | ((tmp & 0x0000ffff0000ffff) << 16);
+        tmp = (tmp >> 32) | (tmp << 32);
+        let light = tmp;
+
+        Self { dark, light }
+    }
+
     #[inline]
     pub fn winner(&self) -> Option<Color> {
         if self.dark.count_ones() > self.light.count_ones() {
@@ -284,14 +308,6 @@ impl Board {
     #[inline]
     pub fn is_end(&self) -> bool {
         (self.dark | self.light).count_zeros() == 0
-    }
-
-    pub fn rotate_180(&self) -> Self {
-        self.rotate_90().rotate_90()
-    }
-
-    pub fn rotate_270(&self) -> Self {
-        self.rotate_90().rotate_90().rotate_90()
     }
 
     #[inline]
@@ -518,5 +534,18 @@ mod tests {
         //let board = board.flip(Square::from_str("A1").unwrap(), Color::Light);
         //board.print();
         //assert_eq!(board.solid_disks_count(Color::Light), 13);
+    }
+
+    #[test]
+    fn mirror() {
+        let board = Board {
+            dark: 0x7844444870504844,
+            light: 0x0,
+        };
+        let expected = Board {
+            dark: 0x4448507048444478,
+            light: 0x0,
+        };
+        assert_eq!(board.mirror(), expected);
     }
 }

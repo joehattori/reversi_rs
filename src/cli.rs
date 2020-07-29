@@ -33,7 +33,7 @@ impl Client {
             if buf.len() == 0 {
                 continue;
             }
-            print!("Read: {}", buf);
+            //print!("Read: {}", buf);
             return self.parse_input(buf);
         }
     }

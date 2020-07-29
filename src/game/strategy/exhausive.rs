@@ -21,6 +21,10 @@ pub struct Exhausive {
     pub now: Instant,
 }
 
+// NEXT
+// +D3 -C5 +F6 -F5 +G6 -F3 +D6 -C2 +B4 -C7 +G2 -A3 +B1 -C3 +D7 -C1 +B3 -F4 +B7 -D2 +D1 -C6 +B5 -E6 +C4 -H6 +G4 -E3 +F7 -G5 +B2 -F8 +G8 -B6 +A5 -H4 +E2
+// invalid move
+
 impl Strategy for Exhausive {
     fn next_move(&self, board: Board, color: Color) -> Option<Square> {
         let flippables = board.flippable_squares(color);

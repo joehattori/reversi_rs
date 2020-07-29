@@ -220,7 +220,7 @@ impl Game {
             // need some time to execute exhausive search at the end.
             Box::new(strategy::NegaScout::new((self.time as u64 - 30000) / 2))
         } else {
-            Box::new(strategy::Opening())
+            Box::new(strategy::Opening::new((self.time as u64 - 30000) / 2))
         };
     }
 }

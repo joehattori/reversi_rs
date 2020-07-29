@@ -36,4 +36,43 @@ impl Square {
     pub fn to_string(&self) -> String {
         format!("{}{}", (self.x + 'A' as u8) as char, self.y + 1)
     }
+
+    pub fn mirror(&self) -> Self {
+        Self {
+            x: self.x,
+            y: 7 - self.y,
+        }
+    }
+
+    pub fn rotate_90(&self) -> Self {
+        Self {
+            x: 7 - self.y,
+            y: self.x,
+        }
+    }
+
+    pub fn rotate_180(&self) -> Self {
+        self.rotate_90().rotate_90()
+    }
+
+    pub fn rotate_270(&self) -> Self {
+        self.rotate_180().rotate_90()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rotate_90() {
+        let s = Square::from_str("A6").unwrap();
+        assert_eq!(s.rotate_90(), Square::from_str("C1").unwrap());
+
+        let s = Square::from_str("B4").unwrap();
+        assert_eq!(s.rotate_90(), Square::from_str("E2").unwrap());
+
+        let s = Square::from_str("E3").unwrap();
+        assert_eq!(s.rotate_90(), Square::from_str("F5").unwrap());
+    }
 }

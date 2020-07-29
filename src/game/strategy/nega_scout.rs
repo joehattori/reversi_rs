@@ -21,12 +21,13 @@ impl Strategy for NegaScout {
         }
         let count = flippables.count_ones();
         // TODO: polish
+        // TODO: think of using db
         let depth = if count < 4 {
-            9
-        } else if count < 8 {
             8
-        } else {
+        } else if count < 8 {
             7
+        } else {
+            4
         };
 
         let mut ret = None;
