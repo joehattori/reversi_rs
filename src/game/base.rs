@@ -1,4 +1,5 @@
 use std::sync::atomic::AtomicBool;
+use std::time::{Duration, Instant};
 
 use crate::cli::Client;
 use crate::game::board::Board;
@@ -53,7 +54,7 @@ pub struct Game {
 }
 
 impl Game {
-    const ENDGAME_BORDER: u8 = 20;
+    const ENDGAME_BORDER: u8 = 19;
     const MIDGAME_BORDER: u8 = 40;
 
     fn empty(client: Client, player: Player, opponent: Player, time: i32) -> Self {
@@ -205,10 +206,7 @@ impl Game {
 
     fn perform_player_move(&mut self) -> String {
         self.set_strategy();
-        match self
-            .strategy
-            .next_move(self.board, self.player.color, self.time)
-        {
+        match self.strategy.next_move(self.board, self.player.color) {
             Some(square) => {
                 self.board = self.board.flip(square.to_uint(), self.player.color);
                 move_message(square)
@@ -220,10 +218,17 @@ impl Game {
     fn set_strategy(&mut self) {
         let count = self.board.empty_squares_count();
         self.strategy = if count < Game::ENDGAME_BORDER {
-            Box::new(strategy::Exhausive())
+            Box::new(strategy::Exhausive {
+                should_stop: AtomicBool::new(false),
+                now: Instant::now(),
+                time_limit: Duration::from_millis(self.time as u64 / 2),
+            })
         } else if count < Game::MIDGAME_BORDER {
             Box::new(strategy::NegaScout {
                 should_stop: AtomicBool::new(false),
+                now: Instant::now(),
+                // need some time to execute exhausive search at the end.
+                time_limit: Duration::from_millis((self.time as u64 - 30000) / 4),
             })
         } else {
             Box::new(strategy::Opening())

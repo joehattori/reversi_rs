@@ -208,66 +208,6 @@ impl Board {
     }
 
     #[inline]
-    pub fn winnable_color(&self, hand: Color, passed: bool) -> Option<Color> {
-        if self.is_end() {
-            return self.winner();
-        } else if self.is_last_move() {
-            return self.winnable_color_last(hand, passed);
-        }
-        let mut flippables = self.flippable_squares(hand);
-        let opposite = hand.opposite();
-        if flippables == 0 {
-            if passed {
-                return self.winner();
-            }
-            return self.winnable_color(opposite, true);
-        }
-        let mut ret = Some(hand.opposite());
-        let mut pos = 0;
-        while flippables > 0 {
-            let zeros = flippables.trailing_zeros() as u8;
-            if zeros < 63 {
-                flippables >>= zeros + 1;
-                pos += zeros + 1;
-            } else {
-                flippables = 0;
-                pos = 64;
-            };
-            match self.flip(pos - 1, hand).winnable_color(opposite, false) {
-                Some(c) => {
-                    if c == hand {
-                        return Some(hand);
-                    }
-                }
-                None => ret = None,
-            }
-        }
-        ret
-    }
-
-    #[inline]
-    pub fn winnable_color_last(&self, hand: Color, passed: bool) -> Option<Color> {
-        let flippables = self.flippable_squares(hand);
-        if flippables == 0 {
-            if passed {
-                self.winner()
-            } else {
-                let opposite = hand.opposite();
-                let flippables = self.flippable_squares(opposite);
-                if flippables == 0 {
-                    self.winner()
-                } else {
-                    let pos = flippables.trailing_zeros() as u8;
-                    self.flip(pos, opposite).winner()
-                }
-            }
-        } else {
-            let pos = flippables.trailing_zeros() as u8;
-            self.flip(pos, hand).winner()
-        }
-    }
-
-    #[inline]
     pub fn empty_squares_count(&self) -> u8 {
         (self.dark | self.light).count_zeros() as u8
     }
@@ -322,6 +262,27 @@ impl Board {
         dark |= 0x5500550055005500 & (tmp >> 1);
 
         Self { light, dark }
+    }
+
+    #[inline]
+    pub fn winner(&self) -> Option<Color> {
+        if self.dark.count_ones() > self.light.count_ones() {
+            Some(Color::Dark)
+        } else if self.dark.count_ones() < self.light.count_ones() {
+            Some(Color::Light)
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    pub fn is_last_move(&self) -> bool {
+        (self.dark | self.light).count_zeros() == 1
+    }
+
+    #[inline]
+    pub fn is_end(&self) -> bool {
+        (self.dark | self.light).count_zeros() == 0
     }
 
     pub fn rotate_180(&self) -> Self {
@@ -482,27 +443,6 @@ impl Board {
             Color::Dark => (self.dark, self.light),
             Color::Light => (self.light, self.dark),
         }
-    }
-
-    #[inline]
-    fn winner(&self) -> Option<Color> {
-        if self.dark.count_ones() > self.light.count_ones() {
-            Some(Color::Dark)
-        } else if self.dark.count_ones() < self.light.count_ones() {
-            Some(Color::Light)
-        } else {
-            None
-        }
-    }
-
-    #[inline]
-    fn is_end(&self) -> bool {
-        (self.dark | self.light).count_zeros() == 0
-    }
-
-    #[inline]
-    fn is_last_move(&self) -> bool {
-        (self.dark | self.light).count_zeros() == 1
     }
 
     fn solid_disks_line(&self, color: Color, square: i8, diff: i8, dep: u8) -> i8 {

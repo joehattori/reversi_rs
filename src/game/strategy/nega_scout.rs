@@ -9,11 +9,12 @@ use crate::game::strategy::Strategy;
 
 pub struct NegaScout {
     pub should_stop: AtomicBool,
+    pub now: Instant,
+    pub time_limit: Duration,
 }
 
 impl Strategy for NegaScout {
-    fn next_move(&self, board: Board, color: Color, remaining_time_ms: i32) -> Option<Square> {
-        let now = Instant::now();
+    fn next_move(&self, board: Board, color: Color) -> Option<Square> {
         let flippables = board.flippable_squares(color);
         if flippables == 0 {
             return None;
@@ -22,7 +23,7 @@ impl Strategy for NegaScout {
         let depth = if count < 4 {
             8
         } else if count < 8 {
-            6
+            7
         } else {
             4
         };
@@ -31,26 +32,10 @@ impl Strategy for NegaScout {
         let mut cur_max = -5000;
         let opposite = color.opposite();
 
-        // need atmost 30 secs to execute exhausive search at the end.
-        let time_limit = Duration::from_millis(remaining_time_ms as u64 * 3 / 8);
-        for (i, mv) in (0..64).filter(|&x| flippables & 1 << x != 0).enumerate() {
-            let remaining = match time_limit.checked_sub(now.elapsed()) {
-                Some(t) => t,
-                None => {
-                    println!("Timeout! Aborting.");
-                    self.should_stop.store(true, Ordering::Relaxed);
-                    Duration::new(0, 0)
-                }
-            };
+        for mv in (0..64).filter(|&x| flippables & 1 << x != 0) {
+            self.check_time_limit();
             let next_board = board.flip(mv, color);
-            let score = -self.nega_scout(
-                next_board,
-                opposite,
-                depth,
-                -5000,
-                5000,
-                remaining / (count - i as u32),
-            );
+            let score = -self.nega_scout(next_board, opposite, depth, -5000, 5000);
             let cur_square = Square::from_uint(mv);
             if cur_max < score {
                 cur_max = score;
@@ -64,16 +49,7 @@ impl Strategy for NegaScout {
 }
 
 impl NegaScout {
-    fn nega_scout(
-        &self,
-        board: Board,
-        color: Color,
-        depth: u8,
-        mut alpha: i16,
-        beta: i16,
-        time_limit: Duration,
-    ) -> i16 {
-        let now = Instant::now();
+    fn nega_scout(&self, board: Board, color: Color, depth: u8, mut alpha: i16, beta: i16) -> i16 {
         let flippables = board.flippable_squares(color);
         if depth == 0 || flippables == 0 || self.should_stop.load(Ordering::Relaxed) {
             return board.score(color);
@@ -81,65 +57,32 @@ impl NegaScout {
 
         let opposite = color.opposite();
         let (first, rest) = Self::order_moves(board, color);
-        let count = rest.len() as u32;
-        let remaining = match time_limit.checked_sub(now.elapsed()) {
-            Some(t) => t,
-            None => {
-                println!("Timeout! Aborting.");
-                return board.score(color);
-            }
-        };
-        let score = -self.nega_scout(
-            board.flip(first, color),
-            opposite,
-            depth - 1,
-            -beta,
-            -alpha,
-            remaining / (count + 1) / 2,
-        );
+        let score = -self.nega_scout(board.flip(first, color), opposite, depth - 1, -beta, -alpha);
+        self.check_time_limit();
+        if self.should_stop.load(Ordering::Relaxed) {
+            return board.score(color);
+        }
         alpha = cmp::max(alpha, score);
-        for (i, mv) in rest.iter().enumerate() {
+        for mv in rest {
             if self.should_stop.load(Ordering::Relaxed) {
                 break;
             }
-            let next_board = board.flip(*mv, color);
-            let remaining = match time_limit.checked_sub(now.elapsed()) {
-                Some(t) => t,
-                None => {
-                    self.should_stop.store(true, Ordering::Relaxed);
+            let next_board = board.flip(mv, color);
+            let score = {
+                let tmp_score =
+                    -self.nega_scout(next_board, opposite, depth - 1, -alpha - 1, -alpha);
+                self.check_time_limit();
+                if self.should_stop.load(Ordering::Relaxed) {
                     break;
                 }
-            };
-            let score = {
-                let tmp_score = -self.nega_scout(
-                    next_board,
-                    opposite,
-                    depth - 1,
-                    -alpha - 1,
-                    -alpha,
-                    remaining / (count - i as u32) / 2,
-                );
-                let remaining = match time_limit.checked_sub(now.elapsed()) {
-                    Some(t) => t,
-                    None => {
-                        println!("Timeout! Aborting.");
-                        break;
-                    }
-                };
                 if alpha < tmp_score && tmp_score < beta {
-                    -self.nega_scout(
-                        next_board,
-                        opposite,
-                        depth - 1,
-                        -beta,
-                        -tmp_score,
-                        remaining / (count - i as u32) / 2,
-                    )
+                    -self.nega_scout(next_board, opposite, depth - 1, -beta, -tmp_score)
                 } else {
                     tmp_score
                 }
             };
 
+            self.check_time_limit();
             alpha = cmp::max(alpha, score);
 
             // beta cut-off
@@ -148,6 +91,14 @@ impl NegaScout {
             }
         }
         alpha
+    }
+
+    #[inline]
+    fn check_time_limit(&self) {
+        if self.time_limit < self.now.elapsed() {
+            println!("Timeout! Aborting.");
+            self.should_stop.store(true, Ordering::Relaxed);
+        }
     }
 
     #[inline]
