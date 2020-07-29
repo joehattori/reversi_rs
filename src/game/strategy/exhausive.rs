@@ -1,4 +1,7 @@
+use lazy_static::lazy_static;
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
 use super::NegaScout;
@@ -6,6 +9,11 @@ use crate::game::base::Color;
 use crate::game::board::Board;
 use crate::game::square::Square;
 use crate::game::strategy::Strategy;
+
+lazy_static! {
+    static ref WINNABLE_COLOR_HISTORY: RwLock<HashMap<(Board, Color), Option<Color>>> =
+        RwLock::new(HashMap::new());
+}
 
 pub struct Exhausive {
     pub should_stop: AtomicBool,
@@ -55,10 +63,32 @@ impl Exhausive {
     }
 
     fn winnable_color(&self, board: Board, hand: Color, passed: bool) -> Option<Color> {
-        if board.is_end() {
-            return board.winner();
-        } else if board.is_last_move() {
-            return self.winnable_color_last(board, hand, passed);
+        {
+            let read = WINNABLE_COLOR_HISTORY.read().unwrap();
+            if let Some(c) = read.get(&(board, hand)) {
+                return *c;
+            }
+        }
+
+        self.check_time_limit();
+        if self.should_stop.load(Ordering::Relaxed) {
+            return None;
+        }
+
+        if board.is_last_move() {
+            let winner = self.winnable_color_last(board, hand, passed);
+            {
+                let mut write = WINNABLE_COLOR_HISTORY.write().unwrap();
+                write.insert((board, hand), winner);
+            }
+            return winner;
+        } else if board.is_end() {
+            let winner = board.winner();
+            {
+                let mut write = WINNABLE_COLOR_HISTORY.write().unwrap();
+                write.insert((board, hand), winner);
+            }
+            return winner;
         }
 
         self.check_time_limit();
@@ -69,16 +99,27 @@ impl Exhausive {
         let mut flippables = board.flippable_squares(hand);
         let opposite = hand.opposite();
         if flippables == 0 {
-            return if passed {
+            let winner = if passed {
                 board.winner()
             } else {
                 self.winnable_color(board, opposite, true)
             };
+            {
+                let mut write = WINNABLE_COLOR_HISTORY.write().unwrap();
+                write.insert((board, opposite), winner);
+                write.insert((board, hand), winner);
+            }
+            return winner;
         }
+
+        self.check_time_limit();
 
         let mut ret = Some(hand.opposite());
         let mut pos = 0;
         while flippables > 0 {
+            if self.should_stop.load(Ordering::Relaxed) {
+                return None;
+            }
             let zeros = flippables.trailing_zeros() as u8;
             if zeros < 63 {
                 flippables >>= zeros + 1;
@@ -88,19 +129,34 @@ impl Exhausive {
                 pos = 64;
             };
             let next_board = board.flip(pos - 1, hand);
-            match self.winnable_color(next_board, opposite, false) {
+            let next_winnable = self.winnable_color(next_board, opposite, false);
+            {
+                let mut write = WINNABLE_COLOR_HISTORY.write().unwrap();
+                write.insert((next_board, opposite), next_winnable);
+            }
+            match next_winnable {
                 Some(c) => {
                     if c == hand {
+                        {
+                            let mut write = WINNABLE_COLOR_HISTORY.write().unwrap();
+                            write.insert((next_board, opposite), next_winnable);
+                        }
                         return Some(hand);
                     }
                 }
-                None => ret = None,
+                None => {
+                    ret = None;
+                }
             }
 
-            self.check_time_limit();
             if self.should_stop.load(Ordering::Relaxed) {
                 return None;
             }
+            self.check_time_limit();
+        }
+        {
+            let mut write = WINNABLE_COLOR_HISTORY.write().unwrap();
+            write.insert((board, hand), ret);
         }
         ret
     }
@@ -134,7 +190,14 @@ impl Exhausive {
     }
 
     fn switch_to_nega_scout(&self, board: Board, color: Color) -> Option<Square> {
-        NegaScout::new_from_duration(self.time_limit / 3 * 2).next_move(board, color)
+        let rest = match self
+            .time_limit
+            .checked_sub(self.now.elapsed().div_f32(4_f32))
+        {
+            Some(t) => t,
+            None => Duration::new(0, 0),
+        };
+        NegaScout::new_from_duration(rest).next_move(board, color)
     }
 }
 

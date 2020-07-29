@@ -20,12 +20,13 @@ impl Strategy for NegaScout {
             return None;
         }
         let count = flippables.count_ones();
+        // TODO: polish
         let depth = if count < 4 {
-            8
+            9
         } else if count < 8 {
-            7
+            8
         } else {
-            6
+            7
         };
 
         let mut ret = None;
@@ -56,7 +57,7 @@ impl NegaScout {
         Self {
             should_stop: AtomicBool::new(false),
             now: Instant::now(),
-            time_limit: Duration::from_millis(time_limit_millisec / 2),
+            time_limit: Duration::from_millis(time_limit_millisec),
         }
     }
 

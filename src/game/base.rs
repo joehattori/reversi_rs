@@ -5,7 +5,7 @@ use crate::game::strategy;
 use crate::game::strategy::Strategy;
 use crate::message::{move_message, open_message, pass_message, ServerMessage};
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Color {
     Dark,
     Light,
@@ -51,10 +51,10 @@ pub struct Game {
 }
 
 impl Game {
-    const ENDGAME_BORDER: u8 = 23;
+    const ENDGAME_BORDER: u8 = 24;
     const MIDGAME_BORDER: u8 = 40;
 
-    fn empty(client: Client, player: Player, opponent: Player, time: i32) -> Self {
+    fn initialize(client: Client, player: Player, opponent: Player, time: i32) -> Self {
         Self {
             client: client,
             state: State::Wait,
@@ -84,7 +84,7 @@ impl Game {
             name: String::new(),
             color: Color::Light,
         };
-        Ok(Game::empty(client, player, opponent, 0))
+        Ok(Game::initialize(client, player, opponent, 0))
     }
 
     pub fn main_loop(mut self) {
@@ -218,7 +218,7 @@ impl Game {
             Box::new(strategy::Exhausive::new(self.time as u64 / 4))
         } else if count < Game::MIDGAME_BORDER {
             // need some time to execute exhausive search at the end.
-            Box::new(strategy::NegaScout::new((self.time as u64 - 30000) / 4))
+            Box::new(strategy::NegaScout::new((self.time as u64 - 30000) / 2))
         } else {
             Box::new(strategy::Opening())
         };
