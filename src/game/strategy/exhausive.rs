@@ -21,7 +21,6 @@ impl Strategy for Exhausive {
         }
         let mut ret = None;
         for square in order_moves(board, color, flippables) {
-            // NEXT: pass time to winnable_color (AtomicBool)
             // NEXT: hash (able to store answers along searching)
             let next_board = board.flip(square, color);
             match self.winnable_color(next_board, color.opposite(), false) {
@@ -47,6 +46,14 @@ impl Strategy for Exhausive {
 }
 
 impl Exhausive {
+    pub fn new(time_limit_millisec: u64) -> Self {
+        Self {
+            should_stop: AtomicBool::new(false),
+            now: Instant::now(),
+            time_limit: Duration::from_millis(time_limit_millisec / 2),
+        }
+    }
+
     fn winnable_color(&self, board: Board, hand: Color, passed: bool) -> Option<Color> {
         if board.is_end() {
             return board.winner();
@@ -120,19 +127,14 @@ impl Exhausive {
     }
 
     fn check_time_limit(&self) {
-        if self.now.elapsed() < self.time_limit {
+        if self.now.elapsed() > self.time_limit {
             println!("Timeout! Switching...");
             self.should_stop.store(true, Ordering::Relaxed);
         }
     }
 
     fn switch_to_nega_scout(&self, board: Board, color: Color) -> Option<Square> {
-        NegaScout {
-            should_stop: AtomicBool::new(false),
-            now: Instant::now(),
-            time_limit: self.time_limit / 2,
-        }
-        .next_move(board, color)
+        NegaScout::new_from_duration(self.time_limit / 2).next_move(board, color)
     }
 }
 
@@ -165,10 +167,10 @@ mod tests {
             },
         ];
         let next_moves = ["E8", "H1"];
-        let e = Exhausive();
+        let e = Exhausive::new(100000);
         for (b, s) in boards.iter().zip(next_moves.iter()) {
             assert_eq!(
-                e.next_move(b.clone(), Color::Dark, 0).unwrap().to_string(),
+                e.next_move(b.clone(), Color::Dark).unwrap().to_string(),
                 s.to_string()
             );
         }

@@ -10,6 +10,7 @@ pub struct Board {
 
 impl Board {
     // TODO: move this part to other file.
+    // TODO: polish
     const MOUNTAIN_WEIGHT: (i16, i16) = (40, 20);
     const PURE_MOUNTAIN_WEIGHT: (i16, i16) = (60, 30);
     const CORNER_FLIPPABLE_WEIGHT: (i16, i16) = (100, 50);
@@ -482,25 +483,6 @@ impl Board {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn winnable_color() {
-        let boards = [
-            Board {
-                dark: 0x6000100810120500,
-                light: 0x8efceff76f6d3a3f,
-            },
-            Board {
-                dark: 0xfc2eeeb28a8c2e3e,
-                light: 0x0311114d75735100,
-            },
-        ];
-        let results = [Color::Dark, Color::Dark];
-        boards
-            .iter()
-            .zip(results.iter())
-            .for_each(|(b, r)| assert_eq!(b.winnable_color(Color::Dark, false).unwrap(), *r));
-    }
 
     #[test]
     fn mountain_score() {

@@ -49,6 +49,22 @@ impl Strategy for NegaScout {
 }
 
 impl NegaScout {
+    pub fn new(time_limit_millisec: u64) -> Self {
+        Self {
+            should_stop: AtomicBool::new(false),
+            now: Instant::now(),
+            time_limit: Duration::from_millis(time_limit_millisec / 2),
+        }
+    }
+
+    pub fn new_from_duration(duration: Duration) -> Self {
+        Self {
+            should_stop: AtomicBool::new(false),
+            now: Instant::now(),
+            time_limit: duration,
+        }
+    }
+
     fn nega_scout(&self, board: Board, color: Color, depth: u8, mut alpha: i16, beta: i16) -> i16 {
         let flippables = board.flippable_squares(color);
         if depth == 0 || flippables == 0 || self.should_stop.load(Ordering::Relaxed) {
@@ -95,7 +111,7 @@ impl NegaScout {
 
     #[inline]
     fn check_time_limit(&self) {
-        if self.time_limit < self.now.elapsed() {
+        if self.now.elapsed() > self.time_limit {
             println!("Timeout! Aborting.");
             self.should_stop.store(true, Ordering::Relaxed);
         }

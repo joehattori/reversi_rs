@@ -54,7 +54,7 @@ pub struct Game {
 }
 
 impl Game {
-    const ENDGAME_BORDER: u8 = 19;
+    const ENDGAME_BORDER: u8 = 23;
     const MIDGAME_BORDER: u8 = 40;
 
     fn empty(client: Client, player: Player, opponent: Player, time: i32) -> Self {
@@ -218,18 +218,10 @@ impl Game {
     fn set_strategy(&mut self) {
         let count = self.board.empty_squares_count();
         self.strategy = if count < Game::ENDGAME_BORDER {
-            Box::new(strategy::Exhausive {
-                should_stop: AtomicBool::new(false),
-                now: Instant::now(),
-                time_limit: Duration::from_millis(self.time as u64 / 2),
-            })
+            Box::new(strategy::Exhausive::new(self.time as u64))
         } else if count < Game::MIDGAME_BORDER {
-            Box::new(strategy::NegaScout {
-                should_stop: AtomicBool::new(false),
-                now: Instant::now(),
-                // need some time to execute exhausive search at the end.
-                time_limit: Duration::from_millis((self.time as u64 - 30000) / 4),
-            })
+            // need some time to execute exhausive search at the end.
+            Box::new(strategy::NegaScout::new((self.time as u64 - 30000) / 4))
         } else {
             Box::new(strategy::Opening())
         };
