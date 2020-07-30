@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use super::{Naive, NegaScout};
+use super::NegaScout;
 use crate::game::base::Color;
 use crate::game::board::Board;
 use crate::game::opening_db::{DARK_MOVES, LIGHT_MOVES};
@@ -34,7 +34,7 @@ impl Opening {
     }
 
     fn switch_to_nega_scout(&self, board: Board, color: Color) -> Option<Square> {
-        let em = Naive().next_move(board, color);
+        let em = NegaScout::emergency_move(board, color);
         let rest = self
             .time_limit
             .checked_sub(self.now.elapsed().div_f32(4_f32))

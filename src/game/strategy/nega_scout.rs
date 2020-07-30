@@ -11,7 +11,7 @@ pub struct NegaScout {
     pub should_stop: AtomicBool,
     pub now: Instant,
     pub time_limit: Duration,
-    pub emergency_ret: Option<Square>,
+    pub emergency_ret: Option<u8>,
 }
 
 impl Strategy for NegaScout {
@@ -21,28 +21,27 @@ impl Strategy for NegaScout {
             return None;
         }
         let count = flippables.count_ones();
-        // TODO: polish
+        // TODO: maybe better to reduce depth by 1 each?
         // TODO: think of using db
         let depth = if count < 4 {
-            8
+            9
         } else if count < 8 {
-            7
+            8
         } else {
-            4
+            5
         };
 
         let mut ret = self.emergency_ret;
         let mut cur_max = -5000;
         let opposite = color.opposite();
 
-        for mv in (0..64).filter(|&x| flippables & 1 << x != 0) {
+        for cur_square in (0..64).filter(|&x| flippables & 1 << x != 0) {
             if self.should_stop.load(Ordering::Relaxed) {
                 break;
             }
             self.check_time_limit();
-            let next_board = board.flip(mv, color);
+            let next_board = board.flip(cur_square, color);
             let score = -self.nega_scout(next_board, opposite, depth, -5000, 5000);
-            let cur_square = Square::from_uint(mv);
             if cur_max < score {
                 cur_max = score;
                 ret = Some(cur_square);
@@ -50,12 +49,12 @@ impl Strategy for NegaScout {
                 ret = ret.or(Some(cur_square));
             }
         }
-        ret
+        ret.map(|x| Square::from_uint(x))
     }
 }
 
 impl NegaScout {
-    pub fn new(time_limit_millisec: u64, emergency_ret: Option<Square>) -> Self {
+    pub fn new(time_limit_millisec: u64, emergency_ret: Option<u8>) -> Self {
         Self {
             should_stop: AtomicBool::new(false),
             now: Instant::now(),
@@ -64,13 +63,23 @@ impl NegaScout {
         }
     }
 
-    pub fn new_from_duration(duration: Duration, emergency_ret: Option<Square>) -> Self {
+    pub fn new_from_duration(duration: Duration, emergency_ret: Option<u8>) -> Self {
         Self {
             should_stop: AtomicBool::new(false),
             now: Instant::now(),
             time_limit: duration,
             emergency_ret,
         }
+    }
+
+    #[inline]
+    pub fn emergency_move(board: Board, color: Color) -> Option<u8> {
+        let flippables = board.flippable_squares(color);
+        let flippables: Vec<u8> = (0..64).filter(|&s| flippables & 1 << s != 0).collect();
+        flippables
+            .iter()
+            .cloned()
+            .max_by_key(|&x| board.flip(x, color).score(color))
     }
 
     fn nega_scout(&self, board: Board, color: Color, depth: u8, mut alpha: i16, beta: i16) -> i16 {
@@ -80,7 +89,7 @@ impl NegaScout {
         }
 
         let opposite = color.opposite();
-        let (first, rest) = Self::order_moves(board, color);
+        let (first, rest) = Self::order_moves(board, color, flippables);
         let score = -self.nega_scout(board.flip(first, color), opposite, depth - 1, -beta, -alpha);
         self.check_time_limit();
         if self.should_stop.load(Ordering::Relaxed) {
@@ -126,8 +135,7 @@ impl NegaScout {
     }
 
     #[inline]
-    fn order_moves(board: Board, color: Color) -> (u8, Vec<u8>) {
-        let flippables = board.flippable_squares(color);
+    fn order_moves(board: Board, color: Color, flippables: u64) -> (u8, Vec<u8>) {
         let flippables = (0..64)
             .filter(|&s| flippables & 1 << s != 0)
             .collect::<Vec<u8>>();

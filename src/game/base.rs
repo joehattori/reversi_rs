@@ -221,7 +221,7 @@ impl Game {
             // need some time to execute exhausive search at the end.
             Box::new(strategy::NegaScout::new(
                 cmp::max((self.time - 30000) / 2, 0) as u64,
-                strategy::Naive().next_move(self.board, self.player.color),
+                strategy::NegaScout::emergency_move(self.board, self.player.color),
             ))
         } else {
             Box::new(strategy::Opening::new(

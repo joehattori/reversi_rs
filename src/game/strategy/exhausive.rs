@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
-use super::{Naive, NegaScout};
+use super::NegaScout;
 use crate::game::base::Color;
 use crate::game::board::Board;
 use crate::game::square::Square;
@@ -88,9 +88,9 @@ impl Exhausive {
             return None;
         }
 
-        let mut flippables = board.flippable_squares(hand);
+        let flippables = order_moves(board, hand, board.flippable_squares(hand));
         let opposite = hand.opposite();
-        if flippables == 0 {
+        if flippables.is_empty() {
             let winner = if passed {
                 board.winner()
             } else {
@@ -104,21 +104,12 @@ impl Exhausive {
         self.check_time_limit();
 
         let mut ret = Some(hand.opposite());
-        let mut pos = 0;
-        // TODO: order
-        while flippables > 0 {
+
+        for square in flippables.iter().cloned() {
             if self.should_stop.load(Ordering::Relaxed) {
                 return None;
             }
-            let zeros = flippables.trailing_zeros() as u8;
-            if zeros < 63 {
-                flippables >>= zeros + 1;
-                pos += zeros + 1;
-            } else {
-                flippables = 0;
-                pos = 64;
-            };
-            let next_board = board.flip(pos - 1, hand);
+            let next_board = board.flip(square, hand);
             let next_winnable = self.winnable_color(next_board, opposite, false);
             self.write_lock(next_board, opposite, next_winnable);
             match next_winnable {
@@ -175,7 +166,7 @@ impl Exhausive {
     }
 
     fn switch_to_nega_scout(&self, board: Board, color: Color) -> Option<Square> {
-        let em = Naive().next_move(board, color);
+        let em = NegaScout::emergency_move(board, color);
         let rest = self
             .time_limit
             .checked_sub(self.now.elapsed().div_f32(4_f32))
