@@ -1,3 +1,5 @@
+use std::cmp;
+
 use crate::cli::Client;
 use crate::game::board::Board;
 use crate::game::square::Square;
@@ -217,9 +219,13 @@ impl Game {
             Box::new(strategy::Exhausive::new(self.time as u64 / 4))
         } else if count < Game::MIDGAME_BORDER {
             // need some time to execute exhausive search at the end.
-            Box::new(strategy::NegaScout::new((self.time as u64 - 30000) / 2))
+            Box::new(strategy::NegaScout::new(
+                cmp::max((self.time - 30000) / 2, 0) as u64,
+            ))
         } else {
-            Box::new(strategy::Opening::new((self.time as u64 - 30000) / 2))
+            Box::new(strategy::Opening::new(
+                cmp::max((self.time - 30000) / 2, 0) as u64
+            ))
         };
     }
 }

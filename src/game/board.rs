@@ -223,6 +223,7 @@ impl Board {
             + self.wing_score(color)
             + self.solid_disks_score(color)
             + self.sub_wing_score(color)
+            + self.empty_score(color)
     }
 
     pub fn rotate_90(&self) -> Self {
@@ -468,6 +469,15 @@ impl Board {
             0
         } else if self.disks_of_color(color) & 1 << new_square != 0 {
             self.solid_disks_line(color, new_square, diff, dep - 1) + 1
+        } else {
+            0
+        }
+    }
+
+    fn empty_score(&self, color: Color) -> i16 {
+        let flippables = self.flippable_squares(color);
+        if flippables == 0 {
+            -5000
         } else {
             0
         }
