@@ -11,17 +11,17 @@ pub struct Board {
 impl Board {
     // TODO: move this part to other file.
     // TODO: polish
-    const MOUNTAIN_WEIGHT: (i16, i16) = (15, 10);
-    const PURE_MOUNTAIN_WEIGHT: (i16, i16) = (20, 10);
-    const CORNER_FLIPPABLE_WEIGHT: (i16, i16) = (20, 10);
-    const WING_WEIGHT: (i16, i16) = (-15, -10);
-    const SUB_WING_WEIGHT: (i16, i16) = (-10, -5);
-    const SOLID_DISK_WEIGHT: (i16, i16) = (5, 5);
-    const FLIPPABLE_COUNT_WEIGHT: (i16, i16) = (1, 2);
+    const MOUNTAIN_WEIGHT: [i16; 3] = [30, 20, 10];
+    const PURE_MOUNTAIN_WEIGHT: [i16; 3] = [50, 40, 20];
+    const WING_WEIGHT: [i16; 3] = [-20, -10, -1];
+    const SUB_WING_WEIGHT: [i16; 3] = [-10, -5, -1];
+    const CORNER_FLIPPABLE_WEIGHT: [i16; 3] = [100, 80, 40];
+    const SOLID_DISK_WEIGHT: [i16; 3] = [10, 10, 10];
+    const FLIPPABLE_COUNT_WEIGHT: [i16; 3] = [10, 10, 10];
     const SQUARE_VALUES: [i16; 64] = [
-        30, -12, 0, -1, -1, 0, -12, 30, -12, -15, -3, -3, -3, -3, -15, -12, 0, -3, 0, -1, -1, 0,
-        -3, 0, -1, -3, -1, -1, -1, -1, -3, -1, -1, -3, -1, -1, -1, -1, -3, -1, 0, -3, 0, -1, -1, 0,
-        -3, 0, -12, -15, -3, -3, -3, -3, -15, -12, 30, -12, 0, -1, -1, 0, -12, 30,
+        100, -40, 20, 5, 5, 20, -40, 100, -40, -80, -1, -1, -1, -1, -80, -40, 20, -1, 5, 1, 1, 5,
+        -1, 20, 5, -1, 1, 0, 0, 1, -1, 5, 5, -1, 1, 0, 0, 1, -1, 5, 20, -1, 5, 1, 1, 5, -1, 20,
+        -40, -80, -1, -1, -1, -1, -80, -40, 100, -40, 20, 5, 5, 20, -40, 100,
     ];
 
     pub fn initial() -> Self {
@@ -216,7 +216,6 @@ impl Board {
     #[inline]
     pub fn score(&self, color: Color) -> i16 {
         self.raw_score(color)
-            + self.flippable_score(color)
             + self.flippable_count_score(color)
             + self.mountain_score(color)
             + self.corner_flippable_score(color)
@@ -402,21 +401,10 @@ impl Board {
     }
 
     #[inline]
-    fn flippable_score(&self, color: Color) -> i16 {
+    fn flippable_count_score(&self, color: Color) -> i16 {
         let player_flippable = self.flippable_squares(color);
         let opponent_flippable = self.flippable_squares(color.opposite());
-        (0..64)
-            .filter(|i| player_flippable & 1_u64 << i != 0)
-            .fold(0, |ret, i| ret + Self::SQUARE_VALUES[i])
-            - (0..64)
-                .filter(|i| opponent_flippable & 1_u64 << i != 0)
-                .fold(0, |ret, i| ret + Self::SQUARE_VALUES[i])
-    }
-
-    #[inline]
-    fn flippable_count_score(&self, color: Color) -> i16 {
-        let (target, opponent) = self.target_boards(color);
-        (target.count_ones() as i16 - opponent.count_ones() as i16)
+        (player_flippable.count_ones() as i16 - 2 * opponent_flippable.count_ones() as i16)
             * self.get_weight(Self::FLIPPABLE_COUNT_WEIGHT)
     }
 
@@ -432,7 +420,7 @@ impl Board {
     }
 
     fn solid_disks_score(&self, color: Color) -> i16 {
-        (self.solid_disks_count(color) - self.solid_disks_count(color.opposite())) as i16
+        (self.solid_disks_count(color) - 2 * self.solid_disks_count(color.opposite())) as i16
             * self.get_weight(Self::SOLID_DISK_WEIGHT)
     }
 
@@ -497,12 +485,16 @@ impl Board {
     }
 
     #[inline]
-    fn get_weight(&self, weight: (i16, i16)) -> i16 {
-        if self.empty_squares_count() > 20 {
-            weight.0
+    fn get_weight(&self, weight: [i16; 3]) -> i16 {
+        let count = self.empty_squares_count();
+        let idx = if count > 30 {
+            0
+        } else if count > 20 {
+            1
         } else {
-            weight.1
-        }
+            2
+        };
+        weight[idx]
     }
 }
 

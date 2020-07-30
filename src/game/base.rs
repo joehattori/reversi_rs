@@ -47,9 +47,9 @@ pub struct Game {
     pub board: Board,
     time: i32,
     strategy: Box<dyn Strategy>,
-    win_game_count: u8,
-    lose_game_count: u8,
-    tie_game_count: u8,
+    win_game_count: u16,
+    lose_game_count: u16,
+    tie_game_count: u16,
 }
 
 impl Game {
@@ -156,10 +156,11 @@ impl Game {
     fn reset(&mut self) {
         self.board = Board::initial();
         self.strategy = Box::new(strategy::Opening::new(0));
-        // TODO: delete these lines if memory usage is not a problem.
-        // if it is a problem, clear after every 5 games
-        let mut write = WINNABLE_COLOR_HISTORY.write().unwrap();
-        write.clear();
+        // due to memory issue
+        if self.total_game_count() % 5 == 0 {
+            let mut write = WINNABLE_COLOR_HISTORY.write().unwrap();
+            write.clear();
+        }
     }
 
     fn on_start_message(&mut self, color: Color, op_name: &str, time: i32) {
@@ -233,5 +234,9 @@ impl Game {
                 cmp::max((self.time - 30000) / 2, 0) as u64
             ))
         };
+    }
+
+    fn total_game_count(&self) -> u16 {
+        self.win_game_count + self.lose_game_count + self.tie_game_count
     }
 }
