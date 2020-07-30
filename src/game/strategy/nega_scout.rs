@@ -11,6 +11,7 @@ pub struct NegaScout {
     pub should_stop: AtomicBool,
     pub now: Instant,
     pub time_limit: Duration,
+    pub emergency_ret: Option<Square>,
 }
 
 impl Strategy for NegaScout {
@@ -30,11 +31,14 @@ impl Strategy for NegaScout {
             4
         };
 
-        let mut ret = None;
+        let mut ret = self.emergency_ret;
         let mut cur_max = -5000;
         let opposite = color.opposite();
 
         for mv in (0..64).filter(|&x| flippables & 1 << x != 0) {
+            if self.should_stop.load(Ordering::Relaxed) {
+                break;
+            }
             self.check_time_limit();
             let next_board = board.flip(mv, color);
             let score = -self.nega_scout(next_board, opposite, depth, -5000, 5000);
@@ -51,19 +55,21 @@ impl Strategy for NegaScout {
 }
 
 impl NegaScout {
-    pub fn new(time_limit_millisec: u64) -> Self {
+    pub fn new(time_limit_millisec: u64, emergency_ret: Option<Square>) -> Self {
         Self {
             should_stop: AtomicBool::new(false),
             now: Instant::now(),
             time_limit: Duration::from_millis(time_limit_millisec),
+            emergency_ret,
         }
     }
 
-    pub fn new_from_duration(duration: Duration) -> Self {
+    pub fn new_from_duration(duration: Duration, emergency_ret: Option<Square>) -> Self {
         Self {
             should_stop: AtomicBool::new(false),
             now: Instant::now(),
             time_limit: duration,
+            emergency_ret,
         }
     }
 

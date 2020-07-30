@@ -15,9 +15,3 @@ pub use opening::Opening;
 pub trait Strategy {
     fn next_move(&self, board: Board, color: Color) -> Option<Square>;
 }
-
-impl dyn Strategy {
-    pub fn default() -> Naive {
-        Naive {}
-    }
-}

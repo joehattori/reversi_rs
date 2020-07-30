@@ -3,7 +3,7 @@ use crate::game::board::Board;
 use crate::game::square::Square;
 use crate::game::strategy::Strategy;
 
-pub struct Naive {}
+pub struct Naive();
 
 impl Strategy for Naive {
     fn next_move(&self, board: Board, color: Color) -> Option<Square> {

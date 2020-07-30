@@ -63,7 +63,7 @@ impl Game {
             opponent: opponent,
             board: Board::initial(),
             time: time,
-            strategy: Box::new(Strategy::default()),
+            strategy: Box::new(strategy::Opening::new(time as u64)),
             win_game_count: 0,
             lose_game_count: 0,
             tie_game_count: 0,
@@ -154,7 +154,7 @@ impl Game {
 
     fn reset(&mut self) {
         self.board = Board::initial();
-        self.strategy = Box::new(Strategy::default());
+        self.strategy = Box::new(strategy::Opening::new(0));
     }
 
     fn on_start_message(&mut self, color: Color, op_name: &str, time: i32) {
@@ -221,6 +221,7 @@ impl Game {
             // need some time to execute exhausive search at the end.
             Box::new(strategy::NegaScout::new(
                 cmp::max((self.time - 30000) / 2, 0) as u64,
+                strategy::Naive().next_move(self.board, self.player.color),
             ))
         } else {
             Box::new(strategy::Opening::new(

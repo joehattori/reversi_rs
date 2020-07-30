@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
-use super::NegaScout;
+use super::{Naive, NegaScout};
 use crate::game::base::Color;
 use crate::game::board::Board;
 use crate::game::square::Square;
@@ -105,6 +105,7 @@ impl Exhausive {
 
         let mut ret = Some(hand.opposite());
         let mut pos = 0;
+        // TODO: order
         while flippables > 0 {
             if self.should_stop.load(Ordering::Relaxed) {
                 return None;
@@ -174,11 +175,12 @@ impl Exhausive {
     }
 
     fn switch_to_nega_scout(&self, board: Board, color: Color) -> Option<Square> {
+        let em = Naive().next_move(board, color);
         let rest = self
             .time_limit
             .checked_sub(self.now.elapsed().div_f32(4_f32))
             .unwrap_or(Duration::new(0, 0));
-        NegaScout::new_from_duration(rest).next_move(board, color)
+        NegaScout::new_from_duration(rest, em).next_move(board, color)
     }
 }
 
