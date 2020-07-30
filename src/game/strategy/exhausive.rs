@@ -11,7 +11,7 @@ use crate::game::square::Square;
 use crate::game::strategy::Strategy;
 
 lazy_static! {
-    static ref WINNABLE_COLOR_HISTORY: RwLock<HashMap<(Board, Color), Option<Color>>> =
+    pub static ref WINNABLE_COLOR_HISTORY: RwLock<HashMap<(Board, Color), Option<Color>>> =
         RwLock::new(HashMap::new());
 }
 

@@ -3,6 +3,7 @@ use std::cmp;
 use crate::cli::Client;
 use crate::game::board::Board;
 use crate::game::square::Square;
+use crate::game::strategy::exhausive::WINNABLE_COLOR_HISTORY;
 use crate::game::strategy::{self, Strategy};
 use crate::message::{move_message, open_message, pass_message, ServerMessage};
 
@@ -155,6 +156,10 @@ impl Game {
     fn reset(&mut self) {
         self.board = Board::initial();
         self.strategy = Box::new(strategy::Opening::new(0));
+        // TODO: delete these lines if memory usage is not a problem.
+        // if it is a problem, clear after every 5 games
+        let mut write = WINNABLE_COLOR_HISTORY.write().unwrap();
+        write.clear();
     }
 
     fn on_start_message(&mut self, color: Color, op_name: &str, time: i32) {
