@@ -297,42 +297,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn mountain_score() {
-        let board = Board {
-            dark: 0x7e0181818181817e,
-            light: 0,
-        };
-        board.print();
-        assert_eq!(
-            board.mountain_score(Color::Dark),
-            board.get_weight(Board::MOUNTAIN_WEIGHT) * 3
-        );
-    }
-
-    #[test]
-    fn solid_disks_count() {
-        let board = Board::initial();
-        assert_eq!(board.solid_disks_count(Color::Light), 0);
-
-        let board = Board {
-            dark: 0x0000783c465c3c7e,
-            light: 0x008080c0b8a0c080,
-        };
-        assert_eq!(board.solid_disks_count(Color::Light), 7);
-
-        let board = Board {
-            dark: 0x0000783c465c3c7e,
-            light: 0x008080c0b8a04080,
-        };
-        assert_eq!(board.solid_disks_count(Color::Light), 1);
-
-        // TODO: fix this case
-        //let board = board.flip(Square::from_str("A1").unwrap(), Color::Light);
-        //board.print();
-        //assert_eq!(board.solid_disks_count(Color::Light), 13);
-    }
-
-    #[test]
     fn mirror() {
         let board = Board {
             dark: 0x7844444870504844,
