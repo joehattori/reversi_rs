@@ -1,6 +1,5 @@
-use std::io;
-use std::io::{BufRead, Write};
-use std::net;
+use std::io::{BufRead, BufReader, BufWriter, Write};
+use std::net::TcpStream;
 use std::str::SplitWhitespace;
 
 use crate::game::base::{Color, GameResult};
@@ -8,19 +7,19 @@ use crate::game::square::Square;
 use crate::message::ServerMessage;
 
 pub struct Client {
-    reader: io::BufReader<net::TcpStream>,
-    writer: io::BufWriter<net::TcpStream>,
+    reader: BufReader<TcpStream>,
+    writer: BufWriter<TcpStream>,
 }
 
 impl Client {
     pub fn new(host: &str, port: u32) -> Self {
         let addr = host.to_string() + ":" + &port.to_string();
         let r_stream =
-            net::TcpStream::connect(addr).expect(&format!("Couldn't connect to {}:{}", host, port));
+            TcpStream::connect(addr).expect(&format!("Couldn't connect to {}:{}", host, port));
         let w_stream = r_stream.try_clone().expect("Couldn't clone stream.");
         Self {
-            reader: io::BufReader::new(r_stream),
-            writer: io::BufWriter::new(w_stream),
+            reader: BufReader::new(r_stream),
+            writer: BufWriter::new(w_stream),
         }
     }
 

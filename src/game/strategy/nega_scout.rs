@@ -36,9 +36,6 @@ impl Strategy for NegaScout {
 
         for mv in (0..64).filter(|&x| flippables & 1 << x != 0) {
             self.check_time_limit();
-            if self.should_stop.load(Ordering::Relaxed) {
-                break;
-            }
             let next_board = board.flip(mv, color);
             let score = -self.nega_scout(next_board, opposite, depth, -5000, 5000);
             let cur_square = Square::from_uint(mv);

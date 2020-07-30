@@ -1,8 +1,7 @@
 use crate::cli::Client;
 use crate::game::board::Board;
 use crate::game::square::Square;
-use crate::game::strategy;
-use crate::game::strategy::Strategy;
+use crate::game::strategy::{self, Strategy};
 use crate::message::{move_message, open_message, pass_message, ServerMessage};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
