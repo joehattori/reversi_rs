@@ -96,7 +96,7 @@ impl NegaScout {
         color: Color,
         depth: u8,
         mut alpha: i16,
-        beta: i16,
+        mut beta: i16,
     ) -> i16 {
         let next_board = board.flip(next_move, color);
         let opposite = color.opposite();
@@ -105,39 +105,37 @@ impl NegaScout {
             return board.score(next_move, color);
         }
 
-        let mut moves = Self::order_moves(next_board, opposite, flippables);
-        let first = moves.pop().unwrap();
-        let score = -self.nega_scout(next_board, first, opposite, depth - 1, -beta, -alpha);
         self.check_time_limit();
         if self.should_stop.load(Ordering::Relaxed) {
             return board.score(next_move, color);
         }
-        alpha = cmp::max(alpha, score);
-        for mv in moves {
+        for (i, &mv) in Self::order_moves(next_board, opposite, flippables)
+            .iter()
+            .enumerate()
+        {
             if self.should_stop.load(Ordering::Relaxed) {
-                break;
+                return alpha;
             }
-            let score = {
-                let tmp_score =
-                    -self.nega_scout(next_board, mv, opposite, depth - 1, -alpha - 1, -alpha);
-                self.check_time_limit();
-                if self.should_stop.load(Ordering::Relaxed) {
-                    break;
-                }
-                if alpha < tmp_score && tmp_score < beta {
-                    -self.nega_scout(next_board, mv, opposite, depth - 1, -beta, -tmp_score)
-                } else {
-                    tmp_score
-                }
-            };
+
+            let score = -self.nega_scout(next_board, mv, opposite, depth - 1, -beta, -alpha);
 
             self.check_time_limit();
+            if self.should_stop.load(Ordering::Relaxed) {
+                return alpha;
+            }
+
+            if alpha < score && score < beta && i > 1 && depth > 1 {
+                alpha = -self.nega_scout(next_board, mv, opposite, depth - 1, -beta, -score);
+            }
+
             alpha = cmp::max(alpha, score);
 
             // beta cut-off
             if alpha >= beta {
-                break;
+                return alpha;
             }
+            beta = alpha + 1;
+            self.check_time_limit();
         }
         alpha
     }

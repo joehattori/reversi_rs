@@ -3,8 +3,8 @@ use crate::game::base::Color;
 
 impl Board {
     // TODO: polish
-    const MOUNTAIN_WEIGHT: [i16; 3] = [10, 10, 10];
-    const PURE_MOUNTAIN_WEIGHT: [i16; 3] = [20, 20, 20];
+    const MOUNTAIN_WEIGHT: [i16; 3] = [20, 20, 10];
+    const PURE_MOUNTAIN_WEIGHT: [i16; 3] = [50, 30, 20];
     const WING_WEIGHT: [i16; 3] = [-10, -10, -1];
     const SUB_WING_WEIGHT: [i16; 3] = [-5, -5, -1];
     const CORNER_FLIPPABLE_WEIGHT: [i16; 3] = [-80, -80, -80];
@@ -14,10 +14,10 @@ impl Board {
 
     //100, -40,  1, -1, -1,  1, -40, 100,
     //-40, -80, -3, -3, -3, -3, -80, -40,
-    //1,    -3,  1, -1, -1,  1,  -3, 1,
-    //-1,   -3, -1,  0,  0, -1,  -3, -1,
-    //-1,   -3, -1,  0,  0, -1,  -3, -1,
-    //1,    -3,  1, -1, -1,  1,  -3, 1,
+    //1,    -3,  1, -1, -1,  1,  -3,   1,
+    //-1,   -3, -1,  0,  0, -1,  -3,  -1,
+    //-1,   -3, -1,  0,  0, -1,  -3,  -1,
+    //1,    -3,  1, -1, -1,  1,  -3,   1,
     //-40, -80, -3, -3, -3, -3, -80, -40,
     //100, -40,  1, -1, -1,  1, -40, 100,
     const RAW_VALUES: [i16; 64] = [
@@ -35,7 +35,6 @@ impl Board {
             + next_board.flippable_count_score(opposite)
             + next_board.corner_flippable_score(opposite)
             + next_board.mountain_score(color)
-            - next_board.mountain_score(opposite)
             //+ next_board.wing_score(color)
             //+ next_board.sub_wing_score(color)
             + next_board.solid_disks_score(color)
