@@ -15,8 +15,8 @@ pub struct Opening {
 impl Strategy for Opening {
     fn next_move(&self, board: Board, color: Color) -> Option<Square> {
         let moves = match color {
-            Color::Dark => DARK_MOVES.lock().unwrap(),
-            Color::Light => LIGHT_MOVES.lock().unwrap(),
+            Color::Dark => DARK_MOVES.read().unwrap(),
+            Color::Light => LIGHT_MOVES.read().unwrap(),
         };
         moves
             .get(&board)

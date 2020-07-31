@@ -1,15 +1,15 @@
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::fs;
-use std::sync::Mutex;
+use std::sync::RwLock;
 
 use crate::game::base::Color;
 use crate::game::board::Board;
 use crate::game::square::Square;
 
 lazy_static! {
-    pub static ref DARK_MOVES: Mutex<HashMap<Board, Square>> = Mutex::new(HashMap::new());
-    pub static ref LIGHT_MOVES: Mutex<HashMap<Board, Square>> = Mutex::new(HashMap::new());
+    pub static ref DARK_MOVES: RwLock<HashMap<Board, Square>> = RwLock::new(HashMap::new());
+    pub static ref LIGHT_MOVES: RwLock<HashMap<Board, Square>> = RwLock::new(HashMap::new());
 }
 
 pub fn load_from_file() {
@@ -71,7 +71,7 @@ pub fn load_from_file() {
         ]
         .iter()
         {
-            DARK_MOVES.lock().unwrap().insert(*board, *s);
+            DARK_MOVES.write().unwrap().insert(*board, *s);
         }
 
         let b = b.mirror();
@@ -84,7 +84,7 @@ pub fn load_from_file() {
         ]
         .iter()
         {
-            DARK_MOVES.lock().unwrap().insert(*board, *s);
+            DARK_MOVES.write().unwrap().insert(*board, *s);
         }
     });
 
@@ -109,7 +109,7 @@ pub fn load_from_file() {
         ]
         .iter()
         {
-            LIGHT_MOVES.lock().unwrap().insert(*board, *s);
+            LIGHT_MOVES.write().unwrap().insert(*board, *s);
         }
 
         let b = b.mirror();
@@ -122,7 +122,7 @@ pub fn load_from_file() {
         ]
         .iter()
         {
-            LIGHT_MOVES.lock().unwrap().insert(*board, *s);
+            LIGHT_MOVES.write().unwrap().insert(*board, *s);
         }
     });
 }

@@ -18,8 +18,8 @@ pub struct NegaScout {
 impl Strategy for NegaScout {
     fn next_move(&self, board: Board, color: Color) -> Option<Square> {
         let moves = match color {
-            Color::Dark => DARK_MOVES.lock().unwrap(),
-            Color::Light => LIGHT_MOVES.lock().unwrap(),
+            Color::Dark => DARK_MOVES.read().unwrap(),
+            Color::Light => LIGHT_MOVES.read().unwrap(),
         };
         if let Some(m) = moves.get(&board) {
             println!("found");

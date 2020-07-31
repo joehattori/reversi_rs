@@ -32,7 +32,6 @@ impl Board {
         let opposite = color.opposite();
         let next_board = self.flip(next_move, color);
         next_board.raw_score(color)
-        + Self::RAW_VALUES[next_move as usize]
             + next_board.flippable_count_score(opposite)
             + next_board.corner_flippable_score(opposite)
             + next_board.mountain_score(color)
