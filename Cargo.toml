@@ -5,6 +5,8 @@ authors = ["Joe Hattori <joe2ninja21@gmail.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.release]
+lto = true
 
 [dependencies]
 clap = "2"
