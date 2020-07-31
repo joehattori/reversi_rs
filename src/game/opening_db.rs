@@ -16,7 +16,7 @@ pub fn load_from_file() {
     let mut dark_moves_count: HashMap<Board, HashMap<u8, i32>> = HashMap::new();
     let mut light_moves_count: HashMap<Board, HashMap<u8, i32>> = HashMap::new();
 
-    let contents = fs::read_to_string("logbook.gam").unwrap();
+    let contents = fs::read_to_string("data/logbook.gam").unwrap();
     for line in contents.lines() {
         let mut board = Board::initial();
         let indicator = line.chars().collect::<Vec<char>>()[line.len() - 6];

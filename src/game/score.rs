@@ -3,14 +3,12 @@ use crate::game::base::Color;
 
 impl Board {
     // TODO: polish
-    const MOUNTAIN_WEIGHT: [i16; 3] = [20, 20, 10];
-    const PURE_MOUNTAIN_WEIGHT: [i16; 3] = [50, 30, 20];
-    const WING_WEIGHT: [i16; 3] = [-10, -10, -1];
-    const SUB_WING_WEIGHT: [i16; 3] = [-5, -5, -1];
+    const MOUNTAIN_WEIGHT: [i16; 3] = [20, 10, 5];
+    const PURE_MOUNTAIN_WEIGHT: [i16; 3] = [30, 20, 10];
     const CORNER_FLIPPABLE_WEIGHT: [i16; 3] = [-80, -80, -80];
-    const SOLID_DISK_WEIGHT: [i16; 3] = [8, 8, 8];
-    const FLIPPABLE_COUNT_WEIGHT: [i16; 3] = [-3, -1, -1];
-    const OPENNESS_WEIGHT: [i16; 3] = [-3, -2, -2];
+    const SOLID_DISK_WEIGHT: [i16; 3] = [5, 5, 5];
+    const FLIPPABLE_COUNT_WEIGHT: [i16; 3] = [-3, -2, -1];
+    const OPENNESS_WEIGHT: [i16; 3] = [-5, -4, -3];
 
     //100, -40,  1, -1, -1,  1, -40, 100,
     //-40, -80, -3, -3, -3, -3, -80, -40,
@@ -78,42 +76,6 @@ impl Board {
     }
 
     #[inline]
-    fn wing_score(&self, color: Color) -> i16 {
-        let mut count = 0;
-        if self.has_shape(color, 0x7c00000000000000) && !self.has_shape(color, 0x7e00000000000000) {
-            count += 1;
-        }
-        if self.has_shape(color, 0x1010101010000) && !self.has_shape(color, 0x1010101010100) {
-            count += 1;
-        }
-        if self.has_shape(color, 0x3e) && !self.has_shape(color, 0x7e) {
-            count += 1;
-        }
-        if self.has_shape(color, 0x808080808000) && !self.has_shape(color, 0x80808080808000) {
-            count += 1;
-        }
-        count * self.get_weight(Self::WING_WEIGHT)
-    }
-
-    #[inline]
-    fn sub_wing_score(&self, color: Color) -> i16 {
-        let mut count = 0;
-        if self.has_shape(color, 0x6) && !self.has_shape(color, 0xf) {
-            count += 1;
-        }
-        if self.has_shape(color, 0x808000) && !self.has_shape(color, 0x80808080) {
-            count += 1;
-        }
-        if self.has_shape(color, 0x6000000000000000) && !self.has_shape(color, 0xf000000000000000) {
-            count += 1;
-        }
-        if self.has_shape(color, 0x1010000000000) && !self.has_shape(color, 0x101010100000000) {
-            count += 1;
-        }
-        count * self.get_weight(Self::SUB_WING_WEIGHT)
-    }
-
-    #[inline]
     fn corner_flippable_score(&self, color: Color) -> i16 {
         let mut count = 0;
         let flippables = self.flippable_squares(color);
@@ -174,12 +136,74 @@ impl Board {
     #[inline]
     fn raw_score(&self, color: Color) -> i16 {
         let (target, opponent) = self.target_boards(color);
-        (0..64)
+        let raw = (0..64)
             .filter(|i| target & 1_u64 << i != 0)
             .fold(0, |ret, i| ret + Self::RAW_VALUES[i])
             - (0..64)
                 .filter(|i| opponent & 1_u64 << i != 0)
                 .fold(0, |ret, i| ret + Self::RAW_VALUES[i])
+            + self.corner_flipped_score(color)
+            - self.corner_flipped_score(color.opposite());
+
+        let weight = if self.empty_squares_count() > 15 {
+            1_f32
+        } else {
+            0.1
+        };
+        (raw as f32 * weight) as i16
+    }
+
+    #[inline]
+    fn corner_flipped_score(&self, color: Color) -> i16 {
+        let (target, opponent) = self.target_boards(color);
+        let sumed = target | opponent;
+        let mut ret = 0;
+        // loop unroll
+        if sumed & 1 << 0 != 0 {
+            if target & 1 << 1 != 0 {
+                ret += Self::RAW_VALUES[1];
+            }
+            if target & 1 << 8 != 0 {
+                ret += Self::RAW_VALUES[8];
+            }
+            if target & 1 << 9 != 0 {
+                ret += Self::RAW_VALUES[9];
+            }
+        }
+        if sumed & 1 << 7 != 0 {
+            if target & 1 << 6 != 0 {
+                ret += Self::RAW_VALUES[6];
+            }
+            if target & 1 << 14 != 0 {
+                ret += Self::RAW_VALUES[14];
+            }
+            if target & 1 << 15 != 0 {
+                ret += Self::RAW_VALUES[15];
+            }
+        }
+        if sumed & 1 << 56 != 0 {
+            if target & 1 << 48 != 0 {
+                ret += Self::RAW_VALUES[48];
+            }
+            if target & 1 << 49 != 0 {
+                ret += Self::RAW_VALUES[49];
+            }
+            if target & 1 << 57 != 0 {
+                ret += Self::RAW_VALUES[57];
+            }
+        }
+        if sumed & 1 << 63 != 0 {
+            if target & 1 << 54 != 0 {
+                ret += Self::RAW_VALUES[54];
+            }
+            if target & 1 << 55 != 0 {
+                ret += Self::RAW_VALUES[55];
+            }
+            if target & 1 << 62 != 0 {
+                ret += Self::RAW_VALUES[62];
+            }
+        }
+        ret
     }
 
     fn solid_disks_score(&self, color: Color) -> i16 {

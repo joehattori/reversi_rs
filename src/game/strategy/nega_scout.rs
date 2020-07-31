@@ -22,7 +22,6 @@ impl Strategy for NegaScout {
             Color::Light => LIGHT_MOVES.read().unwrap(),
         };
         if let Some(m) = moves.get(&board) {
-            println!("found");
             return Some(*m);
         }
         let flippables = board.flippable_squares(color);
@@ -30,8 +29,7 @@ impl Strategy for NegaScout {
             return None;
         }
         let count = flippables.count_ones();
-        // TODO: maybe better to reduce depth by 1 each?
-        // TODO: think of using db
+
         let depth = if count < 4 {
             8
         } else if count < 8 {
@@ -56,7 +54,6 @@ impl Strategy for NegaScout {
                 ret = ret.or(Some(cur_square));
             }
         }
-        println!("score{}", cur_max);
         ret.map(|x| Square::from_uint(x))
     }
 }

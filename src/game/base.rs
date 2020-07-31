@@ -4,7 +4,7 @@ use crate::cli::Client;
 use crate::game::board::Board;
 use crate::game::square::Square;
 use crate::game::strategy::exhausive::WINNABLE_COLOR_HISTORY;
-use crate::game::strategy::{self, Strategy};
+use crate::game::strategy::{Exhausive, Naive, NegaScout, Strategy};
 use crate::message::{move_message, open_message, pass_message, ServerMessage};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -54,7 +54,6 @@ pub struct Game {
 
 impl Game {
     const ENDGAME_BORDER: u8 = 24;
-    const MIDGAME_BORDER: u8 = 40;
 
     fn initialize(client: Client, player: Player, opponent: Player, time: i32) -> Self {
         Self {
@@ -64,7 +63,7 @@ impl Game {
             opponent: opponent,
             board: Board::initial(),
             time: time,
-            strategy: Box::new(strategy::Opening::new(time as u64)),
+            strategy: Box::new(Naive()),
             win_game_count: 0,
             lose_game_count: 0,
             tie_game_count: 0,
@@ -155,7 +154,7 @@ impl Game {
 
     fn reset(&mut self) {
         self.board = Board::initial();
-        self.strategy = Box::new(strategy::Opening::new(0));
+        self.strategy = Box::new(Naive());
         // due to memory issue
         if self.total_game_count() % 5 == 0 {
             let mut write = WINNABLE_COLOR_HISTORY.write().unwrap();
@@ -222,16 +221,12 @@ impl Game {
     fn set_strategy(&mut self) {
         let count = self.board.empty_squares_count();
         self.strategy = if count < Game::ENDGAME_BORDER {
-            Box::new(strategy::Exhausive::new(self.time as u64 / 4))
-        } else if count < Game::MIDGAME_BORDER {
-            // need some time to execute exhausive search at the end.
-            Box::new(strategy::NegaScout::new(
-                cmp::max((self.time - 30000) / 2, 0) as u64,
-                strategy::NegaScout::emergency_move(self.board, self.player.color),
-            ))
+            Box::new(Exhausive::new(self.time as u64 / 4))
         } else {
-            Box::new(strategy::Opening::new(
-                cmp::max((self.time - 30000) / 2, 0) as u64
+            // need some time to execute exhausive search at the end.
+            Box::new(NegaScout::new(
+                cmp::max((self.time - 30000) / 2, 0) as u64,
+                NegaScout::emergency_move(self.board, self.player.color),
             ))
         };
     }
