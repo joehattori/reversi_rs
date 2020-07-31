@@ -3,13 +3,13 @@ use crate::game::base::Color;
 
 impl Board {
     // TODO: polish
-    const MOUNTAIN_WEIGHT: [i16; 3] = [30, 20, 10];
+    const MOUNTAIN_WEIGHT: [i16; 3] = [30, 25, 10];
     const PURE_MOUNTAIN_WEIGHT: [i16; 3] = [50, 40, 20];
-    const WING_WEIGHT: [i16; 3] = [-20, -10, -1];
-    const SUB_WING_WEIGHT: [i16; 3] = [-10, -5, -1];
-    const CORNER_FLIPPABLE_WEIGHT: [i16; 3] = [100, 80, 40];
-    const SOLID_DISK_WEIGHT: [i16; 3] = [10, 10, 10];
-    const FLIPPABLE_COUNT_WEIGHT: [i16; 3] = [10, 10, 10];
+    const WING_WEIGHT: [i16; 3] = [-10, -10, -1];
+    const SUB_WING_WEIGHT: [i16; 3] = [-5, -5, -1];
+    const CORNER_FLIPPABLE_WEIGHT: [i16; 3] = [30, 20, 10];
+    const SOLID_DISK_WEIGHT: [i16; 3] = [10, 10, 20];
+    const FLIPPABLE_COUNT_WEIGHT: [i16; 3] = [10, 8, 10];
     const SQUARE_VALUES: [i16; 64] = [
         100, -40, 20, 5, 5, 20, -40, 100, -40, -80, -1, -1, -1, -1, -80, -40, 20, -1, 5, 1, 1, 5,
         -1, 20, 5, -1, 1, 0, 0, 1, -1, 5, 5, -1, 1, 0, 0, 1, -1, 5, 20, -1, 5, 1, 1, 5, -1, 20,
@@ -17,14 +17,15 @@ impl Board {
     ];
 
     #[inline]
+    // NEXT compress edge score
     pub fn score(&self, color: Color) -> i16 {
         self.raw_score(color)
             + self.flippable_count_score(color)
-            + self.mountain_score(color)
             + self.corner_flippable_score(color)
+            + self.mountain_score(color)
             + self.wing_score(color)
-            + self.solid_disks_score(color)
             + self.sub_wing_score(color)
+            + self.solid_disks_score(color)
             + self.empty_score(color)
     }
 
@@ -65,76 +66,84 @@ impl Board {
 
     #[inline]
     fn wing_score(&self, color: Color) -> i16 {
-        let mut score = 0;
+        let mut count = 0;
         if self.has_shape(color, 0x7c00000000000000) && !self.has_shape(color, 0x7e00000000000000) {
-            score += self.get_weight(Self::WING_WEIGHT);
+            count += 1;
         }
         if self.has_shape(color, 0x1010101010000) && !self.has_shape(color, 0x1010101010100) {
-            score += self.get_weight(Self::WING_WEIGHT);
+            count += 1;
         }
         if self.has_shape(color, 0x3e) && !self.has_shape(color, 0x7e) {
-            score += self.get_weight(Self::WING_WEIGHT);
+            count += 1;
         }
         if self.has_shape(color, 0x808080808000) && !self.has_shape(color, 0x80808080808000) {
-            score += self.get_weight(Self::WING_WEIGHT);
+            count += 1;
         }
-        score
+        count * self.get_weight(Self::WING_WEIGHT)
     }
 
     #[inline]
     fn sub_wing_score(&self, color: Color) -> i16 {
-        let mut score = 0;
+        let mut count = 0;
         if self.has_shape(color, 0x6) && !self.has_shape(color, 0xf) {
-            score += self.get_weight(Self::SUB_WING_WEIGHT);
+            count += 1;
         }
         if self.has_shape(color, 0x808000) && !self.has_shape(color, 0x80808080) {
-            score += self.get_weight(Self::SUB_WING_WEIGHT);
+            count += 1;
         }
         if self.has_shape(color, 0x6000000000000000) && !self.has_shape(color, 0xf000000000000000) {
-            score += self.get_weight(Self::SUB_WING_WEIGHT);
+            count += 1;
         }
         if self.has_shape(color, 0x1010000000000) && !self.has_shape(color, 0x101010100000000) {
-            score += self.get_weight(Self::SUB_WING_WEIGHT);
+            count += 1;
         }
-        score
+        count * self.get_weight(Self::SUB_WING_WEIGHT)
     }
 
     #[inline]
     fn corner_flippable_score(&self, color: Color) -> i16 {
-        let mut score = 0;
+        let mut count = 0;
         let flippables = self.flippable_squares(color);
         if flippables & 1 << 0 != 0 {
-            score += self.get_weight(Self::CORNER_FLIPPABLE_WEIGHT);
+            count += 1;
         }
         if flippables & 1 << 7 != 0 {
-            score += self.get_weight(Self::CORNER_FLIPPABLE_WEIGHT);
+            count += 1;
         }
         if flippables & 1 << 56 != 0 {
-            score += self.get_weight(Self::CORNER_FLIPPABLE_WEIGHT);
+            count += 1;
         }
         if flippables & 1 << 63 != 0 {
-            score += self.get_weight(Self::CORNER_FLIPPABLE_WEIGHT);
+            count += 1;
         }
-        score
+        count * self.get_weight(Self::CORNER_FLIPPABLE_WEIGHT)
     }
 
     #[inline]
     fn flippable_count_score(&self, color: Color) -> i16 {
-        let player_flippable = self.flippable_squares(color);
-        let opponent_flippable = self.flippable_squares(color.opposite());
-        (player_flippable.count_ones() as i16 - 2 * opponent_flippable.count_ones() as i16)
+        //let player_flippable = self.flippable_squares(color);
+        //let opponent_flippable = self.flippable_squares(color.opposite());
+        //(player_flippable.count_ones() as i16 - 2 * opponent_flippable.count_ones() as i16)
+        //* self.get_weight(Self::FLIPPABLE_COUNT_WEIGHT)
+        self.flippable_squares(color).count_ones() as i16
             * self.get_weight(Self::FLIPPABLE_COUNT_WEIGHT)
     }
 
     #[inline]
     fn raw_score(&self, color: Color) -> i16 {
         let (target, opponent) = self.target_boards(color);
-        (0..64)
+        let orig = (0..64)
             .filter(|i| target & 1_u64 << i != 0)
             .fold(0, |ret, i| ret + Self::SQUARE_VALUES[i])
             - (0..64)
                 .filter(|i| opponent & 1_u64 << i != 0)
-                .fold(0, |ret, i| ret + Self::SQUARE_VALUES[i])
+                .fold(0, |ret, i| ret + Self::SQUARE_VALUES[i]);
+        let weight = if self.empty_squares_count() < 20 {
+            0.1
+        } else {
+            1_f32
+        };
+        (orig as f32 * weight) as i16
     }
 
     fn solid_disks_score(&self, color: Color) -> i16 {
