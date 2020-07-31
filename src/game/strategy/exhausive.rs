@@ -180,8 +180,8 @@ fn order_moves(board: Board, color: Color, flippables: u64) -> Vec<u8> {
         .filter(|&x| flippables & 1 << x != 0)
         .collect::<Vec<u8>>();
     ret.sort_by(|a, b| {
-        let a_score = board.flip(*a, color).score(color);
-        let b_score = board.flip(*b, color).score(color);
+        let a_score = board.score(*a, color);
+        let b_score = board.score(*b, color);
         b_score.partial_cmp(&a_score).unwrap()
     });
     ret

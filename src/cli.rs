@@ -42,7 +42,7 @@ impl Client {
             .map_err(|_| "Couldn't send.".to_string())
             .map(|_| {
                 self.writer.flush().unwrap();
-                //println!("Sent {}", msg);
+                println!("Sent {}", msg);
             })
     }
 
