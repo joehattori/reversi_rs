@@ -10,18 +10,18 @@ impl Board {
     const FLIPPABLE_COUNT_WEIGHT: [i16; 3] = [-3, -2, -1];
     const OPENNESS_WEIGHT: [i16; 3] = [-5, -4, -3];
 
-    //100, -40,  1, -1, -1,  1, -40, 100,
-    //-40, -80, -3, -3, -3, -3, -80, -40,
-    //1,    -3,  1, -1, -1,  1,  -3,   1,
-    //-1,   -3, -1,  0,  0, -1,  -3,  -1,
-    //-1,   -3, -1,  0,  0, -1,  -3,  -1,
-    //1,    -3,  1, -1, -1,  1,  -3,   1,
-    //-40, -80, -3, -3, -3, -3, -80, -40,
-    //100, -40,  1, -1, -1,  1, -40, 100,
+    //100, -20,  1, -1, -1,  1, -20, 100,
+    //-20, -40, -3, -3, -3, -3, -40, -20,
+    //  1,  -3,  1, -1, -1,  1,  -3,   1,
+    // -1,  -3, -1,  0,  0, -1,  -3,  -1,
+    // -1,  -3, -1,  0,  0, -1,  -3,  -1,
+    //  1,  -3,  1, -1, -1,  1,  -3,   1,
+    //-20, -40, -3, -3, -3, -3, -40, -20,
+    //100, -20,  1, -1, -1,  1, -20, 100,
     const RAW_VALUES: [i16; 64] = [
-        100, -40, 1, -1, -1, 1, -40, 100, -40, -80, -3, -3, -3, -3, -80, -40, 1, -3, 1, -1, -1, 1,
+        100, -20, 1, -1, -1, 1, -20, 100, -20, -40, -3, -3, -3, -3, -20, -20, 1, -3, 1, -1, -1, 1,
         -3, 1, -1, -3, -1, 0, 0, -1, -3, -1, -1, -3, -1, 0, 0, -1, -3, -1, 1, -3, 1, -1, -1, 1, -3,
-        1, -40, -80, -3, -3, -3, -3, -80, -40, 100, -40, 1, -1, -1, 1, -40, 100,
+        1, -20, -40, -3, -3, -3, -3, -20, -20, 100, -20, 1, -1, -1, 1, -20, 100,
     ];
 
     #[inline]
@@ -33,11 +33,9 @@ impl Board {
             + next_board.flippable_count_score(opposite)
             + next_board.corner_flippable_score(opposite)
             + next_board.mountain_score(color)
-            //+ next_board.wing_score(color)
-            //+ next_board.sub_wing_score(color)
             + next_board.solid_disks_score(color)
             + self.openness_score(next_move, color)
-            + next_board.empty_score(color)
+            + next_board.empty_score(opposite)
     }
 
     #[inline]
@@ -145,12 +143,12 @@ impl Board {
             + self.corner_flipped_score(color)
             - self.corner_flipped_score(color.opposite());
 
-        let weight = if self.empty_squares_count() > 15 {
-            1_f32
+        let div = if self.empty_squares_count() > 15 {
+            1
         } else {
-            0.1
+            10
         };
-        (raw as f32 * weight) as i16
+        raw / div
     }
 
     #[inline]
@@ -273,9 +271,8 @@ impl Board {
     }
 
     fn empty_score(&self, color: Color) -> i16 {
-        let flippables = self.flippable_squares(color);
-        if flippables == 0 {
-            -5000
+        if self.disks_of_color(color) == 0 {
+            5000
         } else {
             0
         }
