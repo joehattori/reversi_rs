@@ -157,10 +157,10 @@ impl Board {
     #[inline]
     fn corner_flipped_score(&self, color: Color) -> i16 {
         let (target, opponent) = self.target_boards(color);
-        let sumed = target | opponent;
+        let summed = target | opponent;
         let mut ret = 0;
         // loop unroll
-        if sumed & 1 << 0 != 0 {
+        if summed & 1 << 0 != 0 {
             if target & 1 << 1 != 0 {
                 ret += Self::RAW_VALUES[1];
             }
@@ -171,7 +171,7 @@ impl Board {
                 ret += Self::RAW_VALUES[9];
             }
         }
-        if sumed & 1 << 7 != 0 {
+        if summed & 1 << 7 != 0 {
             if target & 1 << 6 != 0 {
                 ret += Self::RAW_VALUES[6];
             }
@@ -182,7 +182,7 @@ impl Board {
                 ret += Self::RAW_VALUES[15];
             }
         }
-        if sumed & 1 << 56 != 0 {
+        if summed & 1 << 56 != 0 {
             if target & 1 << 48 != 0 {
                 ret += Self::RAW_VALUES[48];
             }
@@ -193,7 +193,7 @@ impl Board {
                 ret += Self::RAW_VALUES[57];
             }
         }
-        if sumed & 1 << 63 != 0 {
+        if summed & 1 << 63 != 0 {
             if target & 1 << 54 != 0 {
                 ret += Self::RAW_VALUES[54];
             }
