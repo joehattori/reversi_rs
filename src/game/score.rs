@@ -143,12 +143,15 @@ impl Board {
             + self.corner_flipped_score(color)
             - self.corner_flipped_score(color.opposite());
 
-        let div = if self.empty_squares_count() > 15 {
-            1
+        let empty_count = self.empty_squares_count();
+        let mul = if empty_count > 30 {
+            3_f32
+        } else if empty_count > 15 {
+            1_f32
         } else {
-            10
+            0.1
         };
-        raw / div
+        (raw as f32 * mul) as i16
     }
 
     #[inline]
@@ -226,16 +229,6 @@ impl Board {
                             *corner as i8,
                             *dir,
                             false,
-                        )
-                    })
-                } else if opponent_board & 1_u64 << corner != 0 {
-                    dirs.iter().fold(0, |acum, dir| {
-                        acum + self.solid_disks_line(
-                            player_board,
-                            opponent_board,
-                            *corner as i8,
-                            *dir,
-                            true,
                         )
                     })
                 } else {
@@ -359,16 +352,16 @@ mod tests {
         assert_eq!(board.solid_disks_count(Color::Dark), 3);
         assert_eq!(board.solid_disks_count(Color::Light), 0);
 
+        let board = Board {
+            dark: 0x8080e83c465c3c7e,
+            light: 0x000000c0b8a0c080,
+        };
+        board.print();
+        assert_eq!(board.solid_disks_count(Color::Light), 5);
+        assert_eq!(board.solid_disks_count(Color::Dark), 3);
+
         // TODO: fix this case
-
-        //let board = Board {
-        //dark: 0x0000e83c465c3c7e,
-        //light: 0x808000c0b8a0c080,
-        //};
-        //board.print();
-        //assert_eq!(board.solid_disks_count(Color::Light), 7);
-
-        //let board = board.flip(Square::from_str("A1").unwrap(), Color::Light);
+        //let board = board.flip(Square::from_str("A1").unwrap().to_uint(), Color::Light);
         //board.print();
         //assert_eq!(board.solid_disks_count(Color::Light), 13);
     }
