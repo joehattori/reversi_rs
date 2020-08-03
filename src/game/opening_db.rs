@@ -1,7 +1,9 @@
+use flate2::read::GzDecoder;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
-use std::fs;
+use std::fs::{self, File};
 use std::sync::RwLock;
+use tar::Archive;
 
 use crate::game::base::Color;
 use crate::game::board::Board;
@@ -13,29 +15,27 @@ lazy_static! {
 }
 
 pub fn load_from_file() {
+    let tar_gz = File::open("bin/opening_book.tar.gz").unwrap();
+    let tar = GzDecoder::new(tar_gz);
+    let mut ar = Archive::new(tar);
+    ar.unpack(".").unwrap();
+    println!("Unpacked tar");
+
     let mut dark_moves_count: HashMap<Board, HashMap<u8, i32>> = HashMap::new();
     let mut light_moves_count: HashMap<Board, HashMap<u8, i32>> = HashMap::new();
 
-    let contents = fs::read_to_string("data/logbook.gam").unwrap();
+    let contents = fs::read_to_string("bin/opening_book.gam").unwrap();
     for line in contents.lines() {
         let mut board = Board::initial();
-        let indicator = line.chars().collect::<Vec<char>>()[line.len() - 6];
-        let (winner, target_count) = {
-            if indicator == '+' {
-                (Color::Dark, &mut dark_moves_count)
-            } else if indicator == '-' {
-                (Color::Light, &mut light_moves_count)
-            } else {
-                panic!("Invalid indicator {}", indicator)
-            }
-        };
-        for i in 0..40 {
-            let s = line[i * 3..(i + 1) * 3].to_string();
-            let square = Square::from_str(&s[1..3]).unwrap().to_uint();
-            if indicator != s.chars().next().unwrap() {
-                board = board.flip(square, winner.opposite());
-                continue;
-            }
+        for (i, c) in line.chars().enumerate() {
+            let (color, target_count) = {
+                if i % 2 == 0 {
+                    (Color::Dark, &mut dark_moves_count)
+                } else {
+                    (Color::Light, &mut light_moves_count)
+                }
+            };
+            let square = c as u8 - 33;
             target_count
                 .entry(board)
                 .and_modify(|hm| {
@@ -46,7 +46,7 @@ pub fn load_from_file() {
                     hm.insert(square, 1);
                     hm
                 });
-            board = board.flip(square, winner);
+            board = board.flip(square, color);
         }
     }
 
@@ -125,4 +125,5 @@ pub fn load_from_file() {
             LIGHT_MOVES.write().unwrap().insert(*board, *s);
         }
     });
+    fs::remove_file("bin/opening_book.gam").unwrap();
 }

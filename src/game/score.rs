@@ -1,14 +1,15 @@
 use super::board::Board;
 use crate::game::base::Color;
 
+type Weight = [i16; 4];
+
 impl Board {
-    // TODO: polish
-    const MOUNTAIN_WEIGHT: [i16; 3] = [20, 10, 5];
-    const PURE_MOUNTAIN_WEIGHT: [i16; 3] = [30, 20, 10];
-    const CORNER_FLIPPABLE_WEIGHT: [i16; 3] = [-80, -80, -80];
-    const SOLID_DISK_WEIGHT: [i16; 3] = [5, 5, 5];
-    const FLIPPABLE_COUNT_WEIGHT: [i16; 3] = [-3, -2, -1];
-    const OPENNESS_WEIGHT: [i16; 3] = [-5, -4, -3];
+    const MOUNTAIN_WEIGHT: Weight = [20, 20, 10, 5];
+    const PURE_MOUNTAIN_WEIGHT: Weight = [30, 30, 20, 10];
+    const CORNER_FLIPPABLE_WEIGHT: Weight = [-80, -80, -80, -80];
+    const SOLID_DISK_WEIGHT: Weight = [5, 5, 5, 5];
+    const FLIPPABLE_COUNT_WEIGHT: Weight = [-3, -3, -2, -1];
+    const OPENNESS_WEIGHT: Weight = [-5, -5, -4, -3];
 
     //100, -20,  1, -1, -1,  1, -20, 100,
     //-20, -40, -3, -3, -3, -3, -40, -20,
@@ -25,7 +26,6 @@ impl Board {
     ];
 
     #[inline]
-    // NEXT revise and check raw score
     pub fn score(&self, next_move: u8, color: Color) -> i16 {
         let opposite = color.opposite();
         let next_board = self.flip(next_move, color);
@@ -216,7 +216,7 @@ impl Board {
     fn solid_disks_count(&self, color: Color) -> i8 {
         let (player_board, opponent_board) = self.target_boards(color);
         let corners: [u64; 4] = [0, 7, 56, 63];
-        let corners_dirs: [[i8; 2]; 4] = [[8, 1], [8, -1], [-8, 1], [-8, -1]];
+        let corners_dirs = [[8, 1], [8, -1], [-8, 1], [-8, -1]];
         corners
             .iter()
             .zip(corners_dirs.iter())
@@ -285,14 +285,16 @@ impl Board {
     }
 
     #[inline]
-    fn get_weight(&self, weight: [i16; 3]) -> i16 {
+    fn get_weight(&self, weight: Weight) -> i16 {
         let count = self.empty_squares_count();
-        let idx = if count > 40 {
+        let idx = if count > 50 {
             0
-        } else if count > 20 {
+        } else if count > 40 {
             1
-        } else {
+        } else if count > 20 {
             2
+        } else {
+            3
         };
         weight[idx]
     }

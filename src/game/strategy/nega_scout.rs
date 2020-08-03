@@ -35,7 +35,6 @@ impl Strategy for NegaScout {
         } else if count < 8 {
             8
         } else {
-            println!("short time due to so many flippables");
             6
         };
 

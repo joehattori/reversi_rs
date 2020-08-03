@@ -11,3 +11,5 @@ lto = true
 [dependencies]
 clap = "2"
 lazy_static = "1.4.0"
+flate2 = "1.0.16"
+tar = "0.4"
