@@ -221,7 +221,12 @@ impl Game {
     fn set_strategy(&mut self) {
         let count = self.board.empty_squares_count();
         self.strategy = if count < Game::ENDGAME_BORDER {
-            Box::new(Exhausive::new(self.time as u64 / 3))
+            let time = if count < 20 {
+                self.time as u64 / 3 * 2
+            } else {
+                self.time as u64 / 5
+            };
+            Box::new(Exhausive::new(time))
         } else {
             // need some time to execute exhausive search at the end.
             Box::new(NegaScout::new(

@@ -31,11 +31,12 @@ impl Strategy for NegaScout {
         let count = flippables.count_ones();
 
         let depth = if count < 4 {
-            8
+            9
         } else if count < 8 {
-            7
+            8
         } else {
-            5
+            println!("short time due to so many flippables");
+            6
         };
 
         let mut ret = self.emergency_ret;
@@ -91,7 +92,7 @@ impl NegaScout {
         board: Board,
         next_move: u8,
         color: Color,
-        depth: u8,
+        depth: i8,
         mut alpha: i16,
         mut beta: i16,
     ) -> i16 {
@@ -106,10 +107,10 @@ impl NegaScout {
         if self.should_stop.load(Ordering::Relaxed) {
             return board.score(next_move, color);
         }
-        for (i, &mv) in Self::order_moves(next_board, opposite, flippables)
-            .iter()
-            .enumerate()
-        {
+
+        let moves = Self::order_moves(next_board, opposite, flippables);
+
+        for (i, &mv) in moves.iter().enumerate() {
             if self.should_stop.load(Ordering::Relaxed) {
                 return alpha;
             }
@@ -149,16 +150,9 @@ impl NegaScout {
     fn order_moves(board: Board, color: Color, flippables: u64) -> Vec<u8> {
         let mut flippables: Vec<u8> = (0..64).filter(|&s| flippables & 1 << s != 0).collect();
         // using nega_scout is maybe too slow?
-        let opposite = color.opposite();
         flippables.sort_by(|x, y| {
-            let x = board
-                .flip(*x, color)
-                .flippable_squares(opposite)
-                .count_ones();
-            let y = board
-                .flip(*y, color)
-                .flippable_squares(opposite)
-                .count_ones();
+            let x = board.score(*x, color);
+            let y = board.score(*y, color);
             x.partial_cmp(&y).unwrap()
         });
         flippables
