@@ -41,29 +41,36 @@ impl Board {
     #[inline]
     fn mountain_score(&self, color: Color) -> i16 {
         let mut score = 0;
+        let opposite = self.disks_of_color(color.opposite());
 
-        if self.has_shape(color, 0x7e00000000000000) {
+        if self.has_shape(color, 0x7e00000000000000)
+            && (1 << 56 & opposite == 0 && 1 << 63 & opposite == 0)
+        {
             score += if self.has_shape(color, 0x7e3c000000000000) {
                 self.get_weight(Self::PURE_MOUNTAIN_WEIGHT)
             } else {
                 self.get_weight(Self::MOUNTAIN_WEIGHT)
             }
         }
-        if self.has_shape(color, 0x1010101010100) {
+        if self.has_shape(color, 0x1010101010100)
+            && (1 << 0 & opposite == 0 && 1 << 56 & opposite == 0)
+        {
             score += if self.has_shape(color, 0x1030303030100) {
                 self.get_weight(Self::PURE_MOUNTAIN_WEIGHT)
             } else {
                 self.get_weight(Self::MOUNTAIN_WEIGHT)
             }
         }
-        if self.has_shape(color, 0x7e) {
+        if self.has_shape(color, 0x7e) && (1 << 0 & opposite == 0 && 1 << 7 & opposite == 0) {
             score += if self.has_shape(color, 0x3c7e) {
                 self.get_weight(Self::PURE_MOUNTAIN_WEIGHT)
             } else {
                 self.get_weight(Self::MOUNTAIN_WEIGHT)
             }
         }
-        if self.has_shape(color, 0x80808080808000) {
+        if self.has_shape(color, 0x80808080808000)
+            && (1 << 7 & opposite == 0 && 1 << 63 & opposite == 0)
+        {
             score += if self.has_shape(color, 0x80c0c0c0c08000) {
                 self.get_weight(Self::PURE_MOUNTAIN_WEIGHT)
             } else {
@@ -321,6 +328,14 @@ mod tests {
             board.mountain_score(Color::Dark),
             board.get_weight(Board::MOUNTAIN_WEIGHT) * 2
                 + board.get_weight(Board::PURE_MOUNTAIN_WEIGHT) * 1
+        );
+        let board = Board {
+            dark: 0x7e3d81818181817e,
+            light: 1,
+        };
+        assert_eq!(
+            board.mountain_score(Color::Dark),
+            board.get_weight(Board::PURE_MOUNTAIN_WEIGHT)
         );
     }
 
