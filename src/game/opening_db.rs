@@ -27,25 +27,38 @@ pub fn load_from_file() {
     let contents = fs::read_to_string("bin/opening_book.gam").unwrap();
     for line in contents.lines() {
         let mut board = Board::initial();
+        let mut line = line.to_string();
+        let winner = line.pop().unwrap();
+        let target_count = {
+            if winner == '+' {
+                &mut dark_moves_count
+            } else if winner == '-' {
+                &mut light_moves_count
+            } else {
+                panic!("invalid");
+            }
+        };
         for (i, c) in line.chars().enumerate() {
-            let (color, target_count) = {
+            let color = {
                 if i % 2 == 0 {
-                    (Color::Dark, &mut dark_moves_count)
+                    Color::Dark
                 } else {
-                    (Color::Light, &mut light_moves_count)
+                    Color::Light
                 }
             };
             let square = c as u8 - 33;
-            target_count
-                .entry(board)
-                .and_modify(|hm| {
-                    let _ = *hm.entry(square).and_modify(|c| *c += 1).or_insert(1);
-                })
-                .or_insert_with(|| {
-                    let mut hm = HashMap::new();
-                    hm.insert(square, 1);
-                    hm
-                });
+            if (winner == '+' && i % 2 == 0) || (winner == '-' && i % 2 == 1) {
+                target_count
+                    .entry(board)
+                    .and_modify(|hm| {
+                        let _ = *hm.entry(square).and_modify(|c| *c += 1).or_insert(1);
+                    })
+                    .or_insert_with(|| {
+                        let mut hm = HashMap::new();
+                        hm.insert(square, 1);
+                        hm
+                    });
+            }
             board = board.flip(square, color);
         }
     }
